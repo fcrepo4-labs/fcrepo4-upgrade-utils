@@ -27,10 +27,10 @@ import javax.jcr.Session;
 import com.google.common.annotations.VisibleForTesting;
 
 import org.fcrepo.http.commons.session.SessionFactory;
-import org.fcrepo.kernel.models.Container;
-import org.fcrepo.kernel.models.FedoraBinary;
-import org.fcrepo.kernel.models.FedoraResource;
-import org.fcrepo.kernel.services.NodeService;
+import org.fcrepo.kernel.api.models.Container;
+import org.fcrepo.kernel.api.models.FedoraBinary;
+import org.fcrepo.kernel.api.models.FedoraResource;
+import org.fcrepo.kernel.api.services.NodeService;
 
 import org.slf4j.Logger;
 
