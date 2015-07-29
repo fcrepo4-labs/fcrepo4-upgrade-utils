@@ -20,7 +20,7 @@ mvn package
 Running
 -------
 
-To run the migration utility, execute the JAR file and provide the `fcrepo.home` system property to set the directory that contains Fedora 4's `fcrepo4-data` directory.
+Before running the migration utility, stop the repository by shutting down the servlet container (Tomcat, Jetty, etc.) or removing the Fedora 4 webapp.  Then run the migration utility by executing the JAR file and provide the `fcrepo.home` system property to set the directory that contains Fedora 4's `fcrepo4-data` directory.
 
 ``` sh
 java -Dfcrepo.home=/path/to/fcrepo.home -jar /path/to/fcrepo4-upgrade-utils/target/fcrepo-upgrade-utils-4.3.1-SNAPSHOT.jar
