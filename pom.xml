@@ -12,7 +12,7 @@
   <artifactId>fcrepo-upgrade-utils</artifactId>
   <name>Fedora Repository Utilities</name>
   <description>The Fedora Commons repository upgrade utilities: Provides tools for maintaining the Fedora Commons repository.</description>
-  <packaging>bundle</packaging>
+  <packaging>jar</packaging>
 
   <properties>
     <project_name>fcrepo4-upgrade-utils</project_name>
