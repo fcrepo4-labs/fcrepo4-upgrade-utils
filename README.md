@@ -1,4 +1,5 @@
-Fedora 4 Utilities
+Fedora Utilities [![Build Status](https://travis-ci.com/fcrepo4-exts/fcrepo-upgrade-utils.svg?branch=master)](https://travis-ci.com/fcrepo4-exts/fcrepo-upgrade-utils)
+
 ==================
 
 Utilities for maintaining the [Fedora Commons repository](http://github.com/fcrepo4/fcrepo4).
