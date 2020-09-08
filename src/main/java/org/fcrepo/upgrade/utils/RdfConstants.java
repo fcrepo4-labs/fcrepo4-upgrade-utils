@@ -17,9 +17,16 @@
  */
 package org.fcrepo.upgrade.utils;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
+
+import java.util.Set;
+import java.util.function.Predicate;
+
+import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 
 /**
  * RDF-related constants
@@ -30,8 +37,57 @@ public class RdfConstants {
     private RdfConstants() {
     }
 
+    public static final String FEDORA_NS = "http://fedora.info/definitions/v4/repository#";
+    public static final String LDP_NS = "http://www.w3.org/ns/ldp#";
+    public static final String MEMENTO_NS = "http://mementoweb.org/ns#";
+    public static final String PREMIS_NS = "http://www.loc.gov/premis/rdf/v1#";
+    public static final String EBUCORE_NS = "http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#";
+
     public static final Resource LDP_NON_RDFSOURCE =
         ResourceFactory.createResource("http://www.w3.org/ns/ldp#NonRDFSource");
     public static final Property EBUCORE_HAS_MIME_TYPE =
-        ResourceFactory.createProperty("http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#hasMimeType");
+        createProperty(EBUCORE_NS + "hasMimeType");
+    public static final Property HAS_ORIGINAL_NAME =
+            createProperty(EBUCORE_NS + "filename");
+
+    public static final Property FEDORA_LAST_MODIFIED_BY =
+            createProperty(FEDORA_NS + "lastModifiedBy");
+    public static final Property FEDORA_LAST_MODIFIED_DATE =
+            createProperty(FEDORA_NS + "lastModified");
+    public static final Property FEDORA_CREATED_BY =
+            createProperty(FEDORA_NS + "createdBy");
+    public static final Property FEDORA_CREATED_DATE =
+            createProperty(FEDORA_NS + "created");
+
+    public static final Property HAS_FIXITY_RESULT =
+            createProperty(PREMIS_NS + "hasFixity");
+    public static final Property HAS_MESSAGE_DIGEST =
+            createProperty(PREMIS_NS + "hasMessageDigest");
+    public static final Property HAS_SIZE =
+            createProperty(PREMIS_NS + "hasSize");
+
+    public static final Property CONTAINS =
+            createProperty(LDP_NS + "contains");
+
+    private static final Predicate<Property> hasFedoraNamespace =
+            p -> !p.isAnon() && p.getNameSpace().startsWith(FEDORA_NS);
+
+    private static Predicate<Property> hasMementoNamespace =
+            p -> !p.isAnon() && p.getNameSpace().startsWith(MEMENTO_NS);
+
+    private static final Set<Property> fixityProperties = of(
+            HAS_FIXITY_RESULT, HAS_MESSAGE_DIGEST);
+
+    private static final Set<Property> ldpManagedProperties = of(CONTAINS);
+
+    private static final Set<Property> serverManagedProperties;
+    static {
+        final ImmutableSet.Builder<Property> b = ImmutableSet.builder();
+        b.addAll(fixityProperties).addAll(ldpManagedProperties);
+        serverManagedProperties = b.build();
+    }
+
+    public static final Predicate<Property> isManagedPredicate =
+            hasFedoraNamespace.or(hasMementoNamespace).or(p -> serverManagedProperties.contains(p));
+
 }

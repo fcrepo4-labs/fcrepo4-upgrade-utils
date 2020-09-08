@@ -99,4 +99,14 @@ public class Config {
         this.inputDir = inputDir;
     }
 
+    @Override
+    public String toString() {
+        return "Config{" +
+                "sourceVersion=" + sourceVersion +
+                ", targetVersion=" + targetVersion +
+                ", inputDir=" + inputDir +
+                ", outputDir=" + outputDir +
+                '}';
+    }
+
 }
