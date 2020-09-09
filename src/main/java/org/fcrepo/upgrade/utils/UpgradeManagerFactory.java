@@ -29,11 +29,14 @@ import org.apache.commons.lang3.SystemUtils;
 import org.fcrepo.storage.ocfl.CommitType;
 import org.fcrepo.storage.ocfl.DefaultOcflObjectSessionFactory;
 import org.fcrepo.storage.ocfl.OcflObjectSessionFactory;
+import org.fcrepo.upgrade.utils.f6.ContainerMigrator;
+import org.fcrepo.upgrade.utils.f6.MigrationTaskManager;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.Executors;
 
 import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
 import static java.lang.String.format;
@@ -50,12 +53,19 @@ public class UpgradeManagerFactory {
             return new F47ToF5UpgradeManager(config);
         } else if (config.getSourceVersion().equals(FedoraVersion.V_5) &&
                    config.getTargetVersion().equals(FedoraVersion.V_6)) {
-            return new F5ToF6UpgradeManager(config, createOcflObjectSessionFactory(config));
+            return new F5ToF6UpgradeManager(config, createF6MigrationTaskManager(config));
         } else {
             throw new IllegalArgumentException(format("The migration path from %s to %s is not supported.",
                                                       config.getSourceVersion().getStringValue(),
                                                       config.getTargetVersion().getStringValue()));
         }
+    }
+
+    private static MigrationTaskManager createF6MigrationTaskManager(final Config config) {
+        // TODO make pool configurable
+        final var executor = Executors.newFixedThreadPool(10);
+        final var migrator = new ContainerMigrator(createOcflObjectSessionFactory(config));
+        return new MigrationTaskManager(executor, migrator);
     }
 
     private static OcflObjectSessionFactory createOcflObjectSessionFactory(final Config config) {

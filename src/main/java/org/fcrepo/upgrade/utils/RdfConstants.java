@@ -72,22 +72,25 @@ public class RdfConstants {
     private static final Predicate<Property> hasFedoraNamespace =
             p -> !p.isAnon() && p.getNameSpace().startsWith(FEDORA_NS);
 
-    private static Predicate<Property> hasMementoNamespace =
+    private static final Predicate<Property> hasMementoNamespace =
             p -> !p.isAnon() && p.getNameSpace().startsWith(MEMENTO_NS);
 
     private static final Set<Property> fixityProperties = of(
             HAS_FIXITY_RESULT, HAS_MESSAGE_DIGEST);
+
+    private static final Set<Property> binaryProperties = of(
+            HAS_SIZE, HAS_ORIGINAL_NAME, EBUCORE_HAS_MIME_TYPE);
 
     private static final Set<Property> ldpManagedProperties = of(CONTAINS);
 
     private static final Set<Property> serverManagedProperties;
     static {
         final ImmutableSet.Builder<Property> b = ImmutableSet.builder();
-        b.addAll(fixityProperties).addAll(ldpManagedProperties);
+        b.addAll(fixityProperties).addAll(ldpManagedProperties).addAll(binaryProperties);
         serverManagedProperties = b.build();
     }
 
     public static final Predicate<Property> isManagedPredicate =
-            hasFedoraNamespace.or(hasMementoNamespace).or(p -> serverManagedProperties.contains(p));
+            hasFedoraNamespace.or(hasMementoNamespace).or(serverManagedProperties::contains);
 
 }
