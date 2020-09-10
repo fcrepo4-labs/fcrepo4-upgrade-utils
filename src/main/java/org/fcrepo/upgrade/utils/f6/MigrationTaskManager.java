@@ -46,7 +46,7 @@ public class MigrationTaskManager {
         this.lock = new Object();
     }
 
-    public void submit(final ContainerInfo info) {
+    public void submit(final ResourceInfo info) {
         final var task = new MigrateContainerTask(this, containerMigrator, info);
 
         executorService.submit(() -> {

@@ -18,18 +18,24 @@
 
 package org.fcrepo.upgrade.utils.f6;
 
+import org.slf4j.Logger;
+
+import static org.slf4j.LoggerFactory.getLogger;
+
 /**
  * @author pwinckles
  */
 public class MigrateContainerTask implements Runnable {
 
+    private static final Logger LOGGER = getLogger(MigrateContainerTask.class);
+
     private final MigrationTaskManager taskManager;
     private final ContainerMigrator containerMigrator;
-    private final ContainerInfo info;
+    private final ResourceInfo info;
 
     public MigrateContainerTask(final MigrationTaskManager taskManager,
                                 final ContainerMigrator containerMigrator,
-                                final ContainerInfo info) {
+                                final ResourceInfo info) {
         this.taskManager = taskManager;
         this.containerMigrator = containerMigrator;
         this.info = info;
@@ -37,9 +43,16 @@ public class MigrateContainerTask implements Runnable {
 
     @Override
     public void run() {
-        // TODO log on failure for reprocessing
-        final var children = containerMigrator.migrateContainer(info);
-        children.forEach(taskManager::submit);
+        try {
+            final var children = containerMigrator.migrateContainer(info);
+            children.forEach(taskManager::submit);
+            // TODO Failures could be logged to a file for reprocessing at a later date
+        } catch (UnsupportedOperationException e) {
+            // This is thrown when a resource is encountered that is not currently handled
+            LOGGER.error(e.getMessage());
+        } catch (RuntimeException e) {
+            LOGGER.error("Failed to process {}", info, e);
+        }
     }
 
 }
