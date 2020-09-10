@@ -20,6 +20,7 @@ package org.fcrepo.upgrade.utils.f6;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.rdf.model.Model;
@@ -38,6 +39,7 @@ import org.fcrepo.storage.ocfl.InteractionModel;
 import org.fcrepo.storage.ocfl.OcflObjectSession;
 import org.fcrepo.storage.ocfl.OcflObjectSessionFactory;
 import org.fcrepo.storage.ocfl.ResourceHeaders;
+import org.fcrepo.upgrade.utils.Config;
 import org.fcrepo.upgrade.utils.RdfConstants;
 import org.slf4j.Logger;
 
@@ -83,6 +85,7 @@ public class ContainerMigrator {
     private static final String EXTERNAL_EXT = ".external";
     private static final String HEADERS_EXT = ".headers";
 
+    private static final String INFO_FEDORA = "info:fedora";
     private static final String FCR = "fcr%3A";
     private static final String FCR_VERSIONS = FCR + "versions";
     private static final String FCR_METADATA = FCR + "metadata";
@@ -93,10 +96,15 @@ public class ContainerMigrator {
 
     private final OcflObjectSessionFactory objectSessionFactory;
     private final ObjectMapper objectMapper;
+    private final String baseUri;
 
-    public ContainerMigrator(final OcflObjectSessionFactory objectSessionFactory) {
+    public ContainerMigrator(final Config config,
+                             final OcflObjectSessionFactory objectSessionFactory) {
         this.objectSessionFactory = objectSessionFactory;
         this.objectMapper = new ObjectMapper();
+
+        this.baseUri = stripTrailingSlash(
+                Objects.requireNonNull(config.getBaseUri(), "a baseUri must be specified"));
     }
 
     public List<ResourceInfo> migrateContainer(final ResourceInfo info) {
@@ -510,9 +518,6 @@ public class ContainerMigrator {
     }
 
     private InputStream writeRdf(final String fullId, final Model rdf) {
-        // TODO need to handle http://localhost:8080/rest/foo/fcr:acl#authorization
-        final var subject = NodeFactory.createURI(fullId);
-
         try (final var baos = new ByteArrayOutputStream()) {
             final var writer = StreamRDFWriter.getWriterStream(baos, RDFFormat.NTRIPLES);
             writer.start();
@@ -521,8 +526,10 @@ public class ContainerMigrator {
 
                 if (!isServerManagedTriple(statement)) {
                     final var triple = statement.asTriple();
-                    // TODO need to translate object ids too
-                    writer.triple(Triple.create(subject, triple.getPredicate(), triple.getObject()));
+                    writer.triple(Triple.create(
+                            translateId(triple.getSubject()),
+                            triple.getPredicate(),
+                            translateId(triple.getObject())));
                 }
             }
             writer.finish();
@@ -530,6 +537,18 @@ public class ContainerMigrator {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private Node translateId(final Node node) {
+        if (node.isURI()) {
+            final var uri = node.getURI();
+            if (uri.startsWith(baseUri)) {
+                final var newUri = stripTrailingSlash(uri.replaceFirst(baseUri, INFO_FEDORA));
+                LOGGER.trace("Translating {} to {}", uri, newUri);
+                return NodeFactory.createURI(newUri);
+            }
+        }
+        return node;
     }
 
     private boolean isServerManagedTriple(final Statement statement) {
@@ -586,6 +605,13 @@ public class ContainerMigrator {
             this.location = location;
             this.handling = handling;
         }
+    }
+
+    private static String stripTrailingSlash(final String value) {
+        if (value.endsWith("/")) {
+            return value.replaceAll("/+$", "");
+        }
+        return value;
     }
 
 }

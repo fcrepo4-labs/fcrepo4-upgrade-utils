@@ -31,12 +31,19 @@ public class Config {
     private File inputDir;
     private File outputDir;
 
+    // F4/5 -> Options
+    private String baseUri;
+    private Integer threads;
+    private String digestAlgorithm;
+    private String fedoraUser;
+    private String fedoraUserAddress;
+
     /**
      * Set the version of the source to be transformed.
      *
      * @param sourceVersion The source version
      */
-    public void setSourceVersion(FedoraVersion sourceVersion) {
+    public void setSourceVersion(final FedoraVersion sourceVersion) {
         this.sourceVersion = sourceVersion;
     }
 
@@ -63,7 +70,7 @@ public class Config {
      *
      * @param targetVersion The target version
      */
-    public void setTargetVersion(FedoraVersion targetVersion) {
+    public void setTargetVersion(final FedoraVersion targetVersion) {
         this.targetVersion = targetVersion;
     }
 
@@ -79,7 +86,7 @@ public class Config {
      * Set the output directory
      * @param outputDir a directory
      */
-    public void setOutputDir(File outputDir) {
+    public void setOutputDir(final File outputDir) {
         this.outputDir = outputDir;
     }
 
@@ -95,8 +102,83 @@ public class Config {
      * Set the input directory
      * @param inputDir a directory
      */
-    public void setInputDir(File inputDir) {
+    public void setInputDir(final File inputDir) {
         this.inputDir = inputDir;
+    }
+
+    /**
+     * @return the base uri of the existing Fedora, eg http://localhost:8080/rest
+     */
+    public String getBaseUri() {
+        return baseUri;
+    }
+
+    /**
+     * Sets the baseUri
+     * @param baseUri the base uri of the existing Fedora, eg http://localhost:8080/rest
+     */
+    public void setBaseUri(final String baseUri) {
+        this.baseUri = baseUri;
+    }
+
+    /**
+     * @return the number of threads to use
+     */
+    public Integer getThreads() {
+        return threads;
+    }
+
+    /**
+     * Sets the number of threads to use
+     * @param threads number of threads
+     */
+    public void setThreads(final Integer threads) {
+        this.threads = threads;
+    }
+
+    /**
+     * @return the digest algorithm to use in OCFL, sha512 or sha256
+     */
+    public String getDigestAlgorithm() {
+        return digestAlgorithm;
+    }
+
+    /**
+     * Sets the digest algorithm
+     * @param digestAlgorithm sha512 or sha256
+     */
+    public void setDigestAlgorithm(final String digestAlgorithm) {
+        this.digestAlgorithm = digestAlgorithm;
+    }
+
+    /**
+     * @return the user to attribute OCFL versions to
+     */
+    public String getFedoraUser() {
+        return fedoraUser;
+    }
+
+    /**
+     * Sets the user to attribute OCFL versions to
+     * @param fedoraUser user name
+     */
+    public void setFedoraUser(final String fedoraUser) {
+        this.fedoraUser = fedoraUser;
+    }
+
+    /**
+     * @return the address of the user OCFL versions are attributed to
+     */
+    public String getFedoraUserAddress() {
+        return fedoraUserAddress;
+    }
+
+    /**
+     * Sets the address of the user OCFL versions are attributed to
+     * @param fedoraUserAddress the address of the user OCFL versions are attributed to
+     */
+    public void setFedoraUserAddress(final String fedoraUserAddress) {
+        this.fedoraUserAddress = fedoraUserAddress;
     }
 
     @Override
@@ -106,6 +188,11 @@ public class Config {
                 ", targetVersion=" + targetVersion +
                 ", inputDir=" + inputDir +
                 ", outputDir=" + outputDir +
+                ", baseUri=" + baseUri +
+                ", threads=" + threads +
+                ", digestAlgorithm='" + digestAlgorithm + '\'' +
+                ", fedoraUser='" + fedoraUser + '\'' +
+                ", fedoraUserAddress='" + fedoraUserAddress + '\'' +
                 '}';
     }
 
