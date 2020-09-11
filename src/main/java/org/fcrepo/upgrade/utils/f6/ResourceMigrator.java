@@ -20,20 +20,8 @@ package org.fcrepo.upgrade.utils.f6;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.jena.graph.Node;
-import org.apache.jena.graph.NodeFactory;
-import org.apache.jena.graph.Triple;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Property;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.SimpleSelector;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFDataMgr;
-import org.apache.jena.riot.RDFFormat;
-import org.apache.jena.riot.system.StreamRDFWriter;
 import org.apache.jena.vocabulary.RDF;
 import org.fcrepo.storage.ocfl.InteractionModel;
 import org.fcrepo.storage.ocfl.OcflObjectSession;
@@ -43,12 +31,9 @@ import org.fcrepo.upgrade.utils.Config;
 import org.fcrepo.upgrade.utils.RdfConstants;
 import org.slf4j.Logger;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -60,7 +45,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -79,8 +63,6 @@ public class ResourceMigrator {
 
     private static final DateTimeFormatter MEMENTO_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(UTC);
 
-    // TODO need to support other rdf languages
-    private static final String TTL_EXT = ".ttl";
     private static final String BINARY_EXT = ".binary";
     private static final String EXTERNAL_EXT = ".external";
     private static final String HEADERS_EXT = ".headers";
@@ -96,6 +78,9 @@ public class ResourceMigrator {
 
     private final OcflObjectSessionFactory objectSessionFactory;
     private final ObjectMapper objectMapper;
+    private final Lang srcRdfLang;
+    private final String srcRdfExt;
+    private final Lang dstRdfLang;
     private final String baseUri;
 
     public ResourceMigrator(final Config config,
@@ -103,8 +88,12 @@ public class ResourceMigrator {
         this.objectSessionFactory = objectSessionFactory;
         this.objectMapper = new ObjectMapper();
 
-        this.baseUri = stripTrailingSlash(
-                Objects.requireNonNull(config.getBaseUri(), "a baseUri must be specified"));
+        this.baseUri = stripTrailingSlash(config.getBaseUri());
+        this.srcRdfLang = config.getSrcRdfLang();
+        this.srcRdfExt = "." + srcRdfLang.getFileExtensions().get(0);
+
+        // Currently, this is all F6 supports
+        this.dstRdfLang = Lang.NT;
     }
 
     public List<ResourceInfo> migrate(final ResourceInfo info) {
@@ -140,10 +129,10 @@ public class ResourceMigrator {
 
         migrateWithVersions(info, version -> {
             migrateContainerVersion(info, containerDir,
-                    containerDir.resolve(FCR_VERSIONS).resolve(version + TTL_EXT));
+                    containerDir.resolve(FCR_VERSIONS).resolve(rdfFile(version)));
         }, () -> {
             migrateContainerVersion(info, containerDir,
-                    info.getOuterDirectory().resolve(info.getNameEncoded() + TTL_EXT));
+                    info.getOuterDirectory().resolve(rdfFile(info.getNameEncoded())));
         });
 
         return listAllChildren(info.getFullId(), containerDir);
@@ -152,7 +141,7 @@ public class ResourceMigrator {
     private void migrateContainerVersion(final ResourceInfo info,
                                          final Path containerDir,
                                          final Path rdfFile) {
-        final var rdf = parseRdf(rdfFile);
+        final var rdf = RdfUtil.parseRdf(rdfFile, srcRdfLang);
         final var interactionModel = identifyInteractionModel(info.getFullId(), rdf);
 
         if (interactionModel != InteractionModel.BASIC_CONTAINER) {
@@ -167,7 +156,7 @@ public class ResourceMigrator {
             final var isFirst = session.containsResource(info.getFullId());
 
             session.versionCreationTimestamp(headers.getLastModifiedDate().atOffset(ZoneOffset.UTC));
-            session.writeResource(headers, writeRdf(info.getFullId(), rdf));
+            session.writeResource(headers, writeRdf(rdf));
 
             if (isFirst && hasAcl(containerDir)) {
                 migrateAcl(info.getFullId(), containerDir, session);
@@ -182,12 +171,12 @@ public class ResourceMigrator {
 
         migrateWithVersions(info, version -> {
             migrateBinaryVersion(info, binaryDir,
-                    binaryDir.resolve(FCR_VERSIONS).resolve(version + BINARY_EXT),
-                    binaryDir.resolve(FCR_METADATA).resolve(FCR_VERSIONS).resolve(version + TTL_EXT));
+                    binaryDir.resolve(FCR_VERSIONS).resolve(binaryFile(version)),
+                    binaryDir.resolve(FCR_METADATA).resolve(FCR_VERSIONS).resolve(rdfFile(version)));
         }, () -> {
             migrateBinaryVersion(info, binaryDir,
-                    info.getOuterDirectory().resolve(info.getNameEncoded() + BINARY_EXT),
-                    binaryDir.resolve(FCR_METADATA + TTL_EXT));
+                    info.getOuterDirectory().resolve(binaryFile(info.getNameEncoded())),
+                    binaryDir.resolve(rdfFile(FCR_METADATA)));
         });
     }
 
@@ -195,7 +184,7 @@ public class ResourceMigrator {
                                       final Path binaryDir,
                                       final Path binaryFile,
                                       final Path descFile) {
-        final var rdf = parseRdf(descFile);
+        final var rdf = RdfUtil.parseRdf(descFile, srcRdfLang);
         final var headers = createBinaryHeaders(info, rdf);
 
         final var descId = joinId(info.getFullId(), FCR_METADATA_ID);
@@ -209,7 +198,7 @@ public class ResourceMigrator {
     }
 
     private void migrateExternalBinary(final ResourceInfo info) {
-        final var rdf = parseRdf(info.getInnerDirectory().resolve(FCR_METADATA + TTL_EXT));
+        final var rdf = RdfUtil.parseRdf(info.getInnerDirectory().resolve(rdfFile(FCR_METADATA)), srcRdfLang);
         final var headers = createBinaryHeaders(info, rdf);
 
         final var externalResource = parseExternalResource(info);
@@ -226,10 +215,10 @@ public class ResourceMigrator {
         final var fullId = joinId(parentId, FCR_ACL_ID);
         LOGGER.info("Migrating {}", fullId);
 
-        final var rdf = parseRdf(directory.resolve(FCR_ACL + TTL_EXT));
+        final var rdf = RdfUtil.parseRdf(directory.resolve(rdfFile(FCR_ACL)), srcRdfLang);
         final var headers = createAclHeaders(parentId, fullId, rdf);
 
-        session.writeResource(headers, writeRdf(fullId, rdf));
+        session.writeResource(headers, writeRdf(rdf));
     }
 
     private void migrateWithVersions(final ResourceInfo info,
@@ -255,7 +244,7 @@ public class ResourceMigrator {
 
             session.versionCreationTimestamp(contentHeaders.getLastModifiedDate().atOffset(ZoneOffset.UTC));
             session.writeResource(contentHeaders, content);
-            session.writeResource(descHeaders, writeRdf(fullId, rdf));
+            session.writeResource(descHeaders, writeRdf(rdf));
 
             if (isFirst && hasAcl(binaryDir)) {
                 migrateAcl(fullId, binaryDir, session);
@@ -340,18 +329,6 @@ public class ResourceMigrator {
         return ghosts;
     }
 
-    private boolean isBinary(final String filename) {
-        return filename.endsWith(BINARY_EXT);
-    }
-
-    private boolean isExternal(final String filename) {
-        return filename.endsWith(EXTERNAL_EXT);
-    }
-
-    private boolean isContainer(final String filename) {
-        return filename.endsWith(TTL_EXT);
-    }
-
     private List<String> identifyVersions(final Path directory) {
         try (final var children = Files.list(directory.resolve(FCR_VERSIONS))) {
             return children.filter(Files::isRegularFile)
@@ -366,7 +343,7 @@ public class ResourceMigrator {
     }
 
     private InteractionModel identifyInteractionModel(final String fullId, final Model rdf) {
-        for (final var it = listStatements(RDF.type, rdf); it.hasNext();) {
+        for (final var it = RdfUtil.listStatements(RDF.type, rdf); it.hasNext();) {
             final var statement = it.nextStatement();
             try {
                 return InteractionModel.fromString(statement.getObject().toString());
@@ -399,10 +376,10 @@ public class ResourceMigrator {
         headers.setArchivalGroup(false);
         headers.setDeleted(false);
 
-        headers.setCreatedBy(getFirstValue(RdfConstants.FEDORA_CREATED_BY, rdf));
-        headers.setCreatedDate(getDateValue(RdfConstants.FEDORA_CREATED_DATE, rdf));
-        headers.setLastModifiedBy(getFirstValue(RdfConstants.FEDORA_LAST_MODIFIED_BY, rdf));
-        headers.setLastModifiedDate(getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf));
+        headers.setCreatedBy(RdfUtil.getFirstValue(RdfConstants.FEDORA_CREATED_BY, rdf));
+        headers.setCreatedDate(RdfUtil.getDateValue(RdfConstants.FEDORA_CREATED_DATE, rdf));
+        headers.setLastModifiedBy(RdfUtil.getFirstValue(RdfConstants.FEDORA_LAST_MODIFIED_BY, rdf));
+        headers.setLastModifiedDate(RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf));
 
         return headers;
     }
@@ -432,12 +409,16 @@ public class ResourceMigrator {
         final var headers = createCommonHeaders(info.getParentId(), info.getFullId(),
                 InteractionModel.NON_RDF, rdf);
         headers.setObjectRoot(true);
-        headers.setContentSize(Long.valueOf(getFirstValue(RdfConstants.HAS_SIZE, rdf)));
-        headers.setDigests(getAllUris(RdfConstants.HAS_MESSAGE_DIGEST, rdf));
-        headers.setFilename(getFirstValue(RdfConstants.HAS_ORIGINAL_NAME, rdf));
-        headers.setMimeType(getFirstValue(RdfConstants.EBUCORE_HAS_MIME_TYPE, rdf));
+        headers.setContentSize(Long.valueOf(RdfUtil.getFirstValue(RdfConstants.HAS_SIZE, rdf)));
+        headers.setDigests(RdfUtil.getUris(RdfConstants.HAS_MESSAGE_DIGEST, rdf));
+        headers.setFilename(RdfUtil.getFirstValue(RdfConstants.HAS_ORIGINAL_NAME, rdf));
+        headers.setMimeType(RdfUtil.getFirstValue(RdfConstants.EBUCORE_HAS_MIME_TYPE, rdf));
         headers.setStateToken(calculateStateToken(headers.getLastModifiedDate()));
         return headers;
+    }
+
+    private InputStream writeRdf(final Model rdf) {
+        return RdfUtil.writeRdfTranslateIds(rdf, dstRdfLang, baseUri, INFO_FEDORA);
     }
 
     private boolean hasVersions(final Path containerDir) {
@@ -445,90 +426,7 @@ public class ResourceMigrator {
     }
 
     private boolean hasAcl(final Path containerDir) {
-        return Files.exists(containerDir.resolve(FCR_ACL + TTL_EXT));
-    }
-
-    private Instant getDateValue(final Property predicate, final Model rdf) {
-        final var value = getFirstValue(predicate, rdf);
-        if (value == null) {
-            return null;
-        }
-        return Instant.parse(value);
-    }
-
-    private List<URI> getAllUris(final Property predicate, final Model rdf) {
-        final var values = new ArrayList<URI>();
-        try {
-            for (final var it = listStatements(predicate, rdf); it.hasNext();) {
-                values.add(URI.create(it.nextStatement().getObject().toString()));
-            }
-        } catch (NoSuchElementException e) {
-            // ignore
-        }
-        return values;
-    }
-
-    private String getFirstValue(final Property predicate, final Model rdf) {
-        try {
-            return listStatements(predicate, rdf)
-                    .nextStatement().getObject().asLiteral().getString();
-        } catch (NoSuchElementException e) {
-            return null;
-        }
-    }
-
-    private StmtIterator listStatements(final Property predicate, final Model rdf) {
-        return rdf.listStatements(new SimpleSelector(null, predicate, (RDFNode) null));
-    }
-
-    private InputStream writeRdf(final String fullId, final Model rdf) {
-        try (final var baos = new ByteArrayOutputStream()) {
-            final var writer = StreamRDFWriter.getWriterStream(baos, RDFFormat.NTRIPLES);
-            writer.start();
-            for (final var it = rdf.listStatements(); it.hasNext();) {
-                final var statement = it.next();
-
-                if (!isServerManagedTriple(statement)) {
-                    final var triple = statement.asTriple();
-                    writer.triple(Triple.create(
-                            translateId(triple.getSubject()),
-                            triple.getPredicate(),
-                            translateId(triple.getObject())));
-                }
-            }
-            writer.finish();
-            return new ByteArrayInputStream(baos.toByteArray());
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private Node translateId(final Node node) {
-        if (node.isURI()) {
-            final var uri = node.getURI();
-            if (uri.startsWith(baseUri)) {
-                final var newUri = stripTrailingSlash(uri.replaceFirst(baseUri, INFO_FEDORA));
-                LOGGER.trace("Translating {} to {}", uri, newUri);
-                return NodeFactory.createURI(newUri);
-            }
-        }
-        return node;
-    }
-
-    private boolean isServerManagedTriple(final Statement statement) {
-        return (statement.getPredicate().equals(RDF.type) && statement.getObject().isURIResource() &&
-                statement.getObject().toString().startsWith(RdfConstants.LDP_NS)) ||
-                RdfConstants.isManagedPredicate.test(statement.getPredicate());
-    }
-
-    private Model parseRdf(final Path path) {
-        final var model = ModelFactory.createDefaultModel();
-        try (final var is = Files.newInputStream(path)) {
-            RDFDataMgr.read(model, is, Lang.TTL);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        return model;
+        return Files.exists(containerDir.resolve(rdfFile(FCR_ACL)));
     }
 
     private String calculateStateToken(final Instant timestamp) {
@@ -547,8 +445,28 @@ public class ResourceMigrator {
         return URLDecoder.decode(encoded, StandardCharsets.UTF_8);
     }
 
+    private boolean isBinary(final String filename) {
+        return filename.endsWith(BINARY_EXT);
+    }
+
+    private boolean isExternal(final String filename) {
+        return filename.endsWith(EXTERNAL_EXT);
+    }
+
+    private boolean isContainer(final String filename) {
+        return filename.endsWith(srcRdfExt);
+    }
+
+    private String rdfFile(final String name) {
+        return name + srcRdfExt;
+    }
+
+    private String binaryFile(final String name) {
+        return name + BINARY_EXT;
+    }
+
     private ExternalResource parseExternalResource(final ResourceInfo info) {
-        final var file = info.getOuterDirectory().resolve(info.getNameEncoded() +EXTERNAL_EXT + HEADERS_EXT);
+        final var file = info.getOuterDirectory().resolve(info.getNameEncoded() + EXTERNAL_EXT + HEADERS_EXT);
         try {
             final Map<String, List<String>> map = objectMapper.readValue(file.toFile(), Map.class);
 

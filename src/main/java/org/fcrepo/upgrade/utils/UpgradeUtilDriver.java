@@ -24,6 +24,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.jena.riot.RDFLanguages;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -74,51 +75,20 @@ public class UpgradeUtilDriver {
     }
 
     private void run(final String[] args) {
+        final var configOptions = options();
+        final var config = parseOptions(configOptions, args);
 
-        // Help option
-        final Options configOptions = new org.apache.commons.cli.Options();
+        try {
+            //start the upgrade
+            final var manager = UpgradeManagerFactory.create(config);
+            manager.start();
+        } catch (final Exception e) {
+            logger.error("Upgrade failed.", e);
+            printHelpAndExit(format("Upgrade failed: %s  -> See log for details.", e.getMessage()), configOptions);
+        }
+    }
 
-        configOptions.addOption(Option.builder("h")
-                                      .longOpt("help")
-                                      .hasArg(false)
-                                      .desc("Print these options")
-                                      .required(false)
-                                      .build());
-
-        configOptions.addOption(Option.builder("i")
-                                      .longOpt("input-dir")
-                                      .hasArg(true)
-                                      .desc("The path to the directory containing a Fedora 4.7.x or Fedora 5.x export")
-                                      .required(true)
-                                      .build());
-
-        configOptions.addOption(Option.builder("o")
-                                      .longOpt("output-dir")
-                                      .hasArg(true)
-                                      .desc("The path to the directory where upgraded resources will be written. " +
-                                            "Default value: output_<yyyyMMdd-HHmmss>. " +
-                                            "For example: output_20200101-075901")
-                                      .required(false)
-                                      .build());
-
-        configOptions.addOption(Option.builder("s")
-                                      .longOpt("source-version")
-                                      .hasArg(true)
-                                      .desc(format(
-                                          "The version of Fedora that was the source of the export. Valid values: %s",
-                                          join(VALID_MIGRATION_PATHS.keySet())))
-                                      .required(true)
-                                      .build());
-
-        configOptions.addOption(Option.builder("t")
-                .longOpt("target-version")
-                .hasArg(true)
-                .desc(format("The version of Fedora to which you are upgrading. Valid values: %s",
-                        join(VALID_MIGRATION_PATHS.values().stream()
-                                .flatMap(x -> x.stream()).collect(Collectors.toSet()))))
-                .required(true)
-                .build());
-
+    private Config parseOptions(final Options configOptions, final String[] args) {
         // first see if they've specified a config file
         final CommandLineParser parser = new DefaultParser();
         final CommandLine cmd;
@@ -126,7 +96,7 @@ public class UpgradeUtilDriver {
             cmd = parser.parse(configOptions, args);
         } catch (final ParseException e) {
             printHelpAndExit(e.getMessage(), configOptions);
-            return;
+            throw new RuntimeException("I am unreachable");
         }
 
         final File inputDir = new File(cmd.getOptionValue("i"));
@@ -153,19 +123,124 @@ public class UpgradeUtilDriver {
             }
         }
 
-        try {
-            final var config = new Config();
-            config.setSourceVersion(FedoraVersion.fromString(cmd.getOptionValue("s")));
-            config.setTargetVersion(FedoraVersion.fromString(cmd.getOptionValue("t")));
-            config.setInputDir(inputDir);
-            config.setOutputDir(outputDir);
-            //start the upgrade
-            final var manager = UpgradeManagerFactory.create(config);
-            manager.start();
-        } catch (final Exception e) {
-            logger.error("Upgrade failed.", e);
-            printHelpAndExit(format("Upgrade failed: %s  -> See log for details.", e.getMessage()), configOptions);
+        final var config = new Config();
+        config.setSourceVersion(FedoraVersion.fromString(cmd.getOptionValue("s")));
+        config.setTargetVersion(FedoraVersion.fromString(cmd.getOptionValue("t")));
+        config.setInputDir(inputDir);
+        config.setOutputDir(outputDir);
+
+        if (cmd.hasOption("source-rdf")) {
+            config.setSrcRdfLang(RDFLanguages.contentTypeToLang(cmd.getOptionValue("source-rdf")));
         }
+
+        if (cmd.hasOption("threads")) {
+            config.setThreads(Integer.valueOf(cmd.getOptionValue("threads")));
+        }
+
+        config.setBaseUri(cmd.getOptionValue("base-uri"));
+        config.setDigestAlgorithm(cmd.getOptionValue("digest-algorithm"));
+        config.setFedoraUser(cmd.getOptionValue("migration-user"));
+        config.setFedoraUserAddress(cmd.getOptionValue("migration-user-address"));
+
+        if (config.getTargetVersion() == FedoraVersion.V_6) {
+            if (config.getBaseUri() == null) {
+                printHelpAndExit("base-uri must be specified when migrating to Fedora 6", configOptions);
+            }
+        }
+
+        return config;
+    }
+
+    private Options options() {
+        // Help option
+        final Options configOptions = new org.apache.commons.cli.Options();
+
+        configOptions.addOption(Option.builder("h")
+                .longOpt("help")
+                .hasArg(false)
+                .desc("Print these options")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder("i")
+                .longOpt("input-dir")
+                .hasArg(true)
+                .desc("The path to the directory containing a Fedora 4.7.x or Fedora 5.x export")
+                .required(true)
+                .build());
+
+        configOptions.addOption(Option.builder("o")
+                .longOpt("output-dir")
+                .hasArg(true)
+                .desc("The path to the directory where upgraded resources will be written. " +
+                        "Default value: output_<yyyyMMdd-HHmmss>. " +
+                        "For example: output_20200101-075901")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder("s")
+                .longOpt("source-version")
+                .hasArg(true)
+                .desc(format(
+                        "The version of Fedora that was the source of the export. Valid values: %s",
+                        join(VALID_MIGRATION_PATHS.keySet())))
+                .required(true)
+                .build());
+
+        configOptions.addOption(Option.builder("t")
+                .longOpt("target-version")
+                .hasArg(true)
+                .desc(format("The version of Fedora to which you are upgrading. Valid values: %s",
+                        join(VALID_MIGRATION_PATHS.values().stream()
+                                .flatMap(x -> x.stream()).collect(Collectors.toSet()))))
+                .required(true)
+                .build());
+
+        // F6 migration opts
+        configOptions.addOption(Option.builder("r")
+                .longOpt("source-rdf")
+                .hasArg(true)
+                .desc("The RDF language used in the Fedora export. Default: " + Config.DEFAULT_SRC_RDF_LANG.getName())
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder("u")
+                .longOpt("base-uri")
+                .hasArg(true)
+                .desc("Fedora's base URI. For example, http://localhost:8080/rest")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder("p")
+                .longOpt("threads")
+                .hasArg(true)
+                .desc("The number of threads to use. Default: the number of available cores")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder("d")
+                .longOpt("digest-algorithm")
+                .hasArg(true)
+                .desc("The digest algorithm to use in OCFL. Default: " + Config.DEFAULT_DIGEST_ALGORITHM)
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder()
+                .longOpt("migration-user")
+                .hasArg(true)
+                .desc("The user to attribute OCFL versions to. Default: " + Config.DEFAULT_USER)
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder()
+                .longOpt("migration-user-address")
+                .hasArg(true)
+                .desc("The address of the user OCFL versions are attributed to. Default: "
+                        + Config.DEFAULT_USER_ADDRESS)
+                .required(false)
+                .build());
+
+        return configOptions;
     }
 
     private Object join(Collection<FedoraVersion> versions) {
@@ -178,4 +253,5 @@ public class UpgradeUtilDriver {
         formatter.printHelp("fcepo-upgrade-util", options);
         System.exit(1);
     }
+
 }

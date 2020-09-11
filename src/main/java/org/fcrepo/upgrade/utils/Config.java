@@ -17,7 +17,11 @@
  */
 package org.fcrepo.upgrade.utils;
 
+import com.google.common.base.Preconditions;
+import org.apache.jena.riot.Lang;
+
 import java.io.File;
+import java.util.Objects;
 
 /**
  * A class representing the configuration of the upgrade run.
@@ -26,17 +30,24 @@ import java.io.File;
  */
 public class Config {
 
+    public static final String DEFAULT_USER = "fedoraAdmin";
+    public static final String DEFAULT_USER_ADDRESS = "info:fedora/fedoraAdmin";
+    public static final String DEFAULT_DIGEST_ALGORITHM = "sha512";
+    public static final Lang DEFAULT_SRC_RDF_LANG = Lang.TTL;
+    public static final int DEFAULT_THREADS = Runtime.getRuntime().availableProcessors();
+
     private FedoraVersion sourceVersion;
     private FedoraVersion targetVersion;
     private File inputDir;
     private File outputDir;
 
-    // F4/5 -> Options
+    // F4/5 -> F6 Options
+    private Lang srcRdfLang = DEFAULT_SRC_RDF_LANG;
     private String baseUri;
-    private Integer threads;
-    private String digestAlgorithm;
-    private String fedoraUser;
-    private String fedoraUserAddress;
+    private Integer threads = DEFAULT_THREADS;
+    private String digestAlgorithm = DEFAULT_DIGEST_ALGORITHM;
+    private String fedoraUser = DEFAULT_USER;
+    private String fedoraUserAddress = DEFAULT_USER_ADDRESS;
 
     /**
      * Set the version of the source to be transformed.
@@ -118,7 +129,7 @@ public class Config {
      * @param baseUri the base uri of the existing Fedora, eg http://localhost:8080/rest
      */
     public void setBaseUri(final String baseUri) {
-        this.baseUri = baseUri;
+        this.baseUri = Objects.requireNonNull(baseUri, "baseUri must be specified");
     }
 
     /**
@@ -133,7 +144,12 @@ public class Config {
      * @param threads number of threads
      */
     public void setThreads(final Integer threads) {
-        this.threads = threads;
+        if (threads == null) {
+            this.threads = DEFAULT_THREADS;
+        } else {
+            Preconditions.checkArgument(threads > 0, "threads must be > 0");
+            this.threads = threads;
+        }
     }
 
     /**
@@ -148,7 +164,11 @@ public class Config {
      * @param digestAlgorithm sha512 or sha256
      */
     public void setDigestAlgorithm(final String digestAlgorithm) {
-        this.digestAlgorithm = digestAlgorithm;
+        if (digestAlgorithm == null) {
+            this.digestAlgorithm = DEFAULT_DIGEST_ALGORITHM;
+        } else {
+            this.digestAlgorithm = digestAlgorithm;
+        }
     }
 
     /**
@@ -163,7 +183,11 @@ public class Config {
      * @param fedoraUser user name
      */
     public void setFedoraUser(final String fedoraUser) {
-        this.fedoraUser = fedoraUser;
+        if (fedoraUser == null) {
+            this.fedoraUser = DEFAULT_USER;
+        } else {
+            this.fedoraUser = fedoraUser;
+        }
     }
 
     /**
@@ -178,7 +202,30 @@ public class Config {
      * @param fedoraUserAddress the address of the user OCFL versions are attributed to
      */
     public void setFedoraUserAddress(final String fedoraUserAddress) {
-        this.fedoraUserAddress = fedoraUserAddress;
+        if (fedoraUserAddress == null) {
+            this.fedoraUserAddress = DEFAULT_USER_ADDRESS;
+        } else {
+            this.fedoraUserAddress = fedoraUserAddress;
+        }
+    }
+
+    /**
+     * @return the rdf lang of the export
+     */
+    public Lang getSrcRdfLang() {
+        return srcRdfLang;
+    }
+
+    /**
+     * Sets the rdf lang of the export
+     * @param srcRdfLang the rdf lang of the export
+     */
+    public void setSrcRdfLang(final Lang srcRdfLang) {
+        if (srcRdfLang == null) {
+            this.srcRdfLang = DEFAULT_SRC_RDF_LANG;
+        } else {
+            this.srcRdfLang = srcRdfLang;
+        }
     }
 
     @Override
@@ -188,7 +235,8 @@ public class Config {
                 ", targetVersion=" + targetVersion +
                 ", inputDir=" + inputDir +
                 ", outputDir=" + outputDir +
-                ", baseUri=" + baseUri +
+                ", srcRdfLang=" + srcRdfLang +
+                ", baseUri='" + baseUri + '\'' +
                 ", threads=" + threads +
                 ", digestAlgorithm='" + digestAlgorithm + '\'' +
                 ", fedoraUser='" + fedoraUser + '\'' +
