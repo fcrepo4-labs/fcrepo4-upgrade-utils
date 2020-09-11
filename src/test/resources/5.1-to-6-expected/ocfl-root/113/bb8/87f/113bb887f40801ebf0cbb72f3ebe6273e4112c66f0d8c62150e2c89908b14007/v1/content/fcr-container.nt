@@ -1,0 +1,3 @@
+<info:fedora/container-with-acl> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Resource> .
+<info:fedora/container-with-acl> <http://purl.org/dc/elements/1.1/title> "container with acl" .
+<info:fedora/container-with-acl> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Container> .

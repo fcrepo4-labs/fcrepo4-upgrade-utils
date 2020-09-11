@@ -142,21 +142,34 @@ public class ResourceMigrator {
     private List<ResourceInfo> migrateContainer(final ResourceInfo info) {
         final var containerDir = info.getInnerDirectory();
 
-        migrateWithVersions(info, version -> {
-            migrateContainerVersion(info, containerDir,
-                    containerDir.resolve(FCR_VERSIONS).resolve(rdfFile(version)));
-        }, () -> {
-            migrateContainerVersion(info, containerDir,
-                    info.getOuterDirectory().resolve(rdfFile(info.getNameEncoded())));
-        });
+        Instant lastVersionUpdate = null;
 
-        return listAllChildren(info.getFullId(), containerDir);
+        if (hasVersions(info.getInnerDirectory())) {
+            final var versions = identifyVersions(info.getInnerDirectory());
+
+            for (final var version : versions) {
+                LOGGER.info("Migrating {}/fcr:versions/{}", info.getFullId(), version);
+                final var rdf = readRdf(containerDir.resolve(FCR_VERSIONS).resolve(rdfFile(version)));
+                lastVersionUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+
+                migrateContainerVersion(info, containerDir, rdf);
+            }
+        }
+
+        final var rdf = readRdf(info.getOuterDirectory().resolve(rdfFile(info.getNameEncoded())));
+        final var currentUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+
+        // only migrate the state if it's different from the most recent memento
+        if (lastVersionUpdate == null || !lastVersionUpdate.equals(currentUpdate)) {
+            migrateContainerVersion(info, containerDir, rdf);
+        }
+
+        return listAllChildren(info.getFullId(), info.getFullId(), containerDir);
     }
 
     private void migrateContainerVersion(final ResourceInfo info,
                                          final Path containerDir,
-                                         final Path rdfFile) {
-        final var rdf = RdfUtil.parseRdf(rdfFile, srcRdfLang);
+                                         final Model rdf) {
         final var interactionModel = identifyInteractionModel(info.getFullId(), rdf);
 
         if (interactionModel != InteractionModel.BASIC_CONTAINER) {
@@ -168,7 +181,7 @@ public class ResourceMigrator {
         final var headers = createContainerHeaders(info, interactionModel, rdf);
 
         doInSession(info.getFullId(), session -> {
-            final var isFirst = session.containsResource(info.getFullId());
+            final var isFirst = !session.containsResource(info.getFullId());
 
             session.versionCreationTimestamp(headers.getLastModifiedDate().atOffset(ZoneOffset.UTC));
             session.writeResource(headers, writeRdf(rdf));
@@ -184,22 +197,36 @@ public class ResourceMigrator {
     private void migrateBinary(final ResourceInfo info) {
         final var binaryDir = info.getInnerDirectory();
 
-        migrateWithVersions(info, version -> {
+        Instant lastVersionUpdate = null;
+
+        if (hasVersions(info.getInnerDirectory())) {
+            final var versions = identifyVersions(info.getInnerDirectory());
+
+            for (final var version : versions) {
+                LOGGER.info("Migrating {}/fcr:versions/{}", info.getFullId(), version);
+                final var rdf = readRdf(binaryDir.resolve(FCR_METADATA)
+                        .resolve(FCR_VERSIONS).resolve(rdfFile(version)));
+                lastVersionUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+
+                migrateBinaryVersion(info, binaryDir,
+                        binaryDir.resolve(FCR_VERSIONS).resolve(binaryFile(version)), rdf);
+            }
+        }
+
+        final var rdf = readRdf(binaryDir.resolve(rdfFile(FCR_METADATA)));
+        final var currentUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+
+        // only migrate the state if it's different from the most recent memento
+        if (lastVersionUpdate == null || !lastVersionUpdate.equals(currentUpdate)) {
             migrateBinaryVersion(info, binaryDir,
-                    binaryDir.resolve(FCR_VERSIONS).resolve(binaryFile(version)),
-                    binaryDir.resolve(FCR_METADATA).resolve(FCR_VERSIONS).resolve(rdfFile(version)));
-        }, () -> {
-            migrateBinaryVersion(info, binaryDir,
-                    info.getOuterDirectory().resolve(binaryFile(info.getNameEncoded())),
-                    binaryDir.resolve(rdfFile(FCR_METADATA)));
-        });
+                    info.getOuterDirectory().resolve(binaryFile(info.getNameEncoded())), rdf);
+        }
     }
 
     private void migrateBinaryVersion(final ResourceInfo info,
                                       final Path binaryDir,
                                       final Path binaryFile,
-                                      final Path descFile) {
-        final var rdf = RdfUtil.parseRdf(descFile, srcRdfLang);
+                                      final Model rdf) {
         final var headers = createBinaryHeaders(info, rdf);
 
         final var descId = joinId(info.getFullId(), FCR_METADATA_ID);
@@ -213,7 +240,7 @@ public class ResourceMigrator {
     }
 
     private void migrateExternalBinary(final ResourceInfo info) {
-        final var rdf = RdfUtil.parseRdf(info.getInnerDirectory().resolve(rdfFile(FCR_METADATA)), srcRdfLang);
+        final var rdf = readRdf(info.getInnerDirectory().resolve(rdfFile(FCR_METADATA)));
         final var headers = createBinaryHeaders(info, rdf);
 
         final var externalResource = parseExternalResource(info);
@@ -230,22 +257,10 @@ public class ResourceMigrator {
         final var fullId = joinId(parentId, FCR_ACL_ID);
         LOGGER.info("Migrating {}", fullId);
 
-        final var rdf = RdfUtil.parseRdf(directory.resolve(rdfFile(FCR_ACL)), srcRdfLang);
+        final var rdf = readRdf(directory.resolve(rdfFile(FCR_ACL)));
         final var headers = createAclHeaders(parentId, fullId, rdf);
 
         session.writeResource(headers, writeRdf(rdf));
-    }
-
-    private void migrateWithVersions(final ResourceInfo info,
-                                     final Consumer<String> versioned,
-                                     final Runnable unversioned) {
-        if (hasVersions(info.getInnerDirectory())) {
-            final var versions = identifyVersions(info.getInnerDirectory());
-            LOGGER.debug("Resource {} has versions: {}", info.getFullId(), versions);
-            versions.forEach(versioned);
-        } else {
-            unversioned.run();
-        }
     }
 
     private void writeBinary(final String fullId,
@@ -255,7 +270,7 @@ public class ResourceMigrator {
                              final ResourceHeaders descHeaders,
                              final Model rdf) {
         doInSession(fullId, session -> {
-            final var isFirst = session.containsResource(fullId);
+            final var isFirst = !session.containsResource(fullId);
 
             session.versionCreationTimestamp(contentHeaders.getLastModifiedDate().atOffset(ZoneOffset.UTC));
             session.writeResource(contentHeaders, content);
@@ -286,19 +301,22 @@ public class ResourceMigrator {
      * Lists all of the children of a container. This is complicated by the fact that a container can contain ghost
      * nodes between it and its children. This method will navigate ghost nodes down to the next concrete children.
      *
-     * @param parentId the internal Fedora id of the container resource
+     * @param rootParentId the internal Fedora id of the container resource that was just processed
+     * @param currentParentId a child of rootParentId used when expanding ghost nodes
      * @param containerDir the container's export directory
      * @return the container's direct children
      */
-    private List<ResourceInfo> listAllChildren(final String parentId, final Path containerDir) {
-        final var childMap = listDirectChildren(parentId, containerDir);
+    private List<ResourceInfo> listAllChildren(final String rootParentId,
+                                               final String currentParentId,
+                                               final Path containerDir) {
+        final var childMap = listDirectChildren(rootParentId, currentParentId, containerDir);
         final var children = new ArrayList<>(childMap.values());
         final var ghosts = listGhostNodes(containerDir, childMap.keySet());
 
         return ghosts.stream()
                 .map(ghost -> {
                     final var name = decode(ghost.getFileName().toString());
-                    return listAllChildren(joinId(parentId, name), ghost);
+                    return listAllChildren(rootParentId, joinId(currentParentId, name), ghost);
                 })
                 .reduce(children, (l, r) -> {
                     l.addAll(r);
@@ -309,11 +327,14 @@ public class ResourceMigrator {
     /**
      * Returns all of the children that are children of a container and not within a ghost node.
      *
-     * @param parentId the internal Fedora id of the container resource
+     * @param rootParentId the internal Fedora id of the container resource that was just processed
+     * @param currentParentId a child of rootParentId used when expanding ghost nodes
      * @param containerDir the container's export directory
      * @return the container's children not under ghost nodes
      */
-    private Map<String, ResourceInfo> listDirectChildren(final String parentId, final Path containerDir) {
+    private Map<String, ResourceInfo> listDirectChildren(final String rootParentId,
+                                                         final String currentParentId,
+                                                         final Path containerDir) {
         try (final var children = Files.list(containerDir)) {
             return children.filter(Files::isRegularFile)
                     .map(f -> f.getFileName().toString())
@@ -322,14 +343,14 @@ public class ResourceMigrator {
                     .map(filename -> {
                         final var stripped = extractName(filename);
                         final var decoded = decode(stripped);
-                        final var fullId = joinId(parentId, decoded);
+                        final var fullId = joinId(currentParentId, decoded);
 
                         if (isBinary(filename)) {
-                            return ResourceInfo.binary(parentId, fullId, containerDir, stripped);
+                            return ResourceInfo.binary(rootParentId, fullId, containerDir, stripped);
                         } else if (isExternal(filename)) {
-                            return ResourceInfo.externalBinary(parentId, fullId, containerDir, stripped);
+                            return ResourceInfo.externalBinary(rootParentId, fullId, containerDir, stripped);
                         } else if (isContainer(filename)) {
-                            return ResourceInfo.container(parentId, fullId, containerDir, stripped);
+                            return ResourceInfo.container(rootParentId, fullId, containerDir, stripped);
                         }
 
                         return null;
@@ -352,12 +373,14 @@ public class ResourceMigrator {
         final var ghosts = new ArrayList<Path>();
 
         try (final var list = Files.list(containerDir)) {
-            list.filter(Files::isDirectory).forEach(file -> {
-                final var name = file.getFileName().toString();
-                if (!children.contains(name)) {
-                    ghosts.add(file);
-                }
-            });
+            list.filter(Files::isDirectory)
+                    .filter(f -> !f.getFileName().toString().startsWith(FCR))
+                    .forEach(file -> {
+                        final var name = file.getFileName().toString();
+                        if (!children.contains(name)) {
+                            ghosts.add(file);
+                        }
+                    });
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -416,6 +439,7 @@ public class ResourceMigrator {
         headers.setCreatedDate(RdfUtil.getDateValue(RdfConstants.FEDORA_CREATED_DATE, rdf));
         headers.setLastModifiedBy(RdfUtil.getFirstValue(RdfConstants.FEDORA_LAST_MODIFIED_BY, rdf));
         headers.setLastModifiedDate(RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf));
+        headers.setStateToken(calculateStateToken(headers.getLastModifiedDate()));
 
         return headers;
     }
@@ -449,8 +473,11 @@ public class ResourceMigrator {
         headers.setDigests(RdfUtil.getUris(RdfConstants.HAS_MESSAGE_DIGEST, rdf));
         headers.setFilename(RdfUtil.getFirstValue(RdfConstants.HAS_ORIGINAL_NAME, rdf));
         headers.setMimeType(RdfUtil.getFirstValue(RdfConstants.EBUCORE_HAS_MIME_TYPE, rdf));
-        headers.setStateToken(calculateStateToken(headers.getLastModifiedDate()));
         return headers;
+    }
+
+    private Model readRdf(final Path path) {
+        return RdfUtil.parseRdf(path, srcRdfLang);
     }
 
     private InputStream writeRdf(final Model rdf) {

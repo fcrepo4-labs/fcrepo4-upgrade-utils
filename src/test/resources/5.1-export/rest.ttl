@@ -1,0 +1,26 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+
+<http://localhost:8080/rest/>
+        fedora:lastModified            "2020-09-11T18:34:19.255Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        rdf:type                       ldp:RDFSource ;
+        rdf:type                       ldp:Container ;
+        rdf:type                       ldp:BasicContainer ;
+        rdf:type                       fedora:RepositoryRoot ;
+        rdf:type                       fedora:Resource ;
+        rdf:type                       fedora:Container ;
+        ldp:contains                   <http://localhost:8080/rest/simple-binary> ;
+        ldp:contains                   <http://localhost:8080/rest/simple-container> ;
+        ldp:contains                   <http://localhost:8080/rest/container-with-children> ;
+        ldp:contains                   <http://localhost:8080/rest/direct-container> ;
+        ldp:contains                   <http://localhost:8080/rest/indirect-container> ;
+        ldp:contains                   <http://localhost:8080/rest/binary-with-acl> ;
+        ldp:contains                   <http://localhost:8080/rest/container-with-acl> ;
+        ldp:contains                   <http://localhost:8080/rest/binary-with-versions> ;
+        ldp:contains                   <http://localhost:8080/rest/container-with-versions> ;
+        ldp:contains                   <http://localhost:8080/rest/container-with-ghosts> ;
+        ldp:contains                   <http://localhost:8080/rest/binary:with!encoding> ;
+        ldp:contains                   <http://localhost:8080/rest/external-proxied> ;
+        ldp:contains                   <http://localhost:8080/rest/external-redirected> ;
+        fedora:hasTransactionProvider  <http://localhost:8080/rest/fcr:tx> .

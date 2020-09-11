@@ -1,0 +1,3 @@
+<info:fedora/external-redirected> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Binary> .
+<info:fedora/external-redirected> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Resource> .
+<info:fedora/external-redirected> <http://www.iana.org/assignments/relation/describedby> <info:fedora/external-redirected/fcr:metadata> .

@@ -20,6 +20,7 @@ package org.fcrepo.upgrade.utils;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.common.annotations.VisibleForTesting;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
@@ -69,7 +70,8 @@ public class UpgradeManagerFactory {
         return new MigrationTaskManager(executor, migrator);
     }
 
-    private static OcflObjectSessionFactory createOcflObjectSessionFactory(final Config config) {
+    @VisibleForTesting
+    public static OcflObjectSessionFactory createOcflObjectSessionFactory(final Config config) {
         try {
             final var output = config.getOutputDir().toPath();
             final var ocflRoot = Files.createDirectories(output.resolve("ocfl-root"));

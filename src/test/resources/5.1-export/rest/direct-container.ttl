@@ -1,0 +1,18 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+@prefix dc:  <http://purl.org/dc/elements/1.1/> .
+
+<http://localhost:8080/rest/direct-container>
+        rdf:type                fedora:Container ;
+        rdf:type                fedora:Resource ;
+        rdf:type                ldp:DirectContainer ;
+        dc:title                "direct container" ;
+        fedora:lastModifiedBy   "bypassAdmin" ;
+        fedora:createdBy        "bypassAdmin" ;
+        fedora:created          "2020-09-11T18:18:03.415Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        fedora:lastModified     "2020-09-11T18:18:03.415Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        ldp:membershipResource  <http://localhost:8080/rest/direct-container> ;
+        ldp:hasMemberRelation   ldp:member ;
+        rdf:type                ldp:RDFSource ;
+        rdf:type                ldp:Container .

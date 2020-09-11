@@ -1,0 +1,16 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+@prefix dc:  <http://purl.org/dc/elements/1.1/> .
+
+<http://localhost:8080/rest/container-with-versions>
+        rdf:type               fedora:Container ;
+        rdf:type               ldp:RDFSource ;
+        rdf:type               ldp:Container ;
+        rdf:type               fedora:Resource ;
+        rdf:type               ldp:BasicContainer ;
+        fedora:created         "2020-09-11T18:23:33.503Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        dc:title               "container version 1" ;
+        fedora:lastModified    "2020-09-11T18:23:33.503Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        fedora:lastModifiedBy  "bypassAdmin" ;
+        fedora:createdBy       "bypassAdmin" .

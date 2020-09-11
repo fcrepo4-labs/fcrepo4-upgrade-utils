@@ -1,0 +1,20 @@
+@prefix premis:  <http://www.loc.gov/premis/rdf/v1#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix ebucore:  <http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+@prefix iana:  <http://www.iana.org/assignments/relation/> .
+
+<http://localhost:8080/rest/binary-with-versions>
+        rdf:type                 ldp:NonRDFSource ;
+        rdf:type                 fedora:Binary ;
+        rdf:type                 fedora:Resource ;
+        fedora:created           "2020-09-11T18:23:01.622Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        premis:hasSize           "16"^^<http://www.w3.org/2001/XMLSchema#long> ;
+        ebucore:hasMimeType      "text/plain" ;
+        fedora:lastModified      "2020-09-11T18:23:01.622Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        premis:hasMessageDigest  <urn:sha1:7f2e75cc52124e31f19e8adddd37c93f5765b44b> ;
+        ebucore:filename         "binary-with-versions-1.txt" ;
+        fedora:lastModifiedBy    "bypassAdmin" ;
+        iana:describedby         <http://localhost:8080/rest/binary-with-versions/fcr:metadata> ;
+        fedora:createdBy         "bypassAdmin" .

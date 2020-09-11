@@ -31,6 +31,8 @@ class F5ToF6UpgradeManager implements UpgradeManager {
 
     private static final Logger LOGGER = getLogger(F5ToF6UpgradeManager.class);
 
+    private static final String ROOT = "info:fedora";
+
     private final Config config;
     private final MigrationTaskManager migrationTaskManager;
 
@@ -50,7 +52,7 @@ class F5ToF6UpgradeManager implements UpgradeManager {
         LOGGER.info("Starting upgrade: config={}", config);
 
         final var root = config.getInputDir().toPath();
-        final var repoRoot = ResourceInfo.container(null, "info:fedora", root, "rest");
+        final var repoRoot = ResourceInfo.container(ROOT, ROOT, root, "rest");
         migrationTaskManager.submit(repoRoot);
 
         try {
