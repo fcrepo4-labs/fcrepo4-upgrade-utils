@@ -21,6 +21,8 @@ package org.fcrepo.upgrade.utils.f6;
 import java.nio.file.Path;
 
 /**
+ * Encapsulates all of the information necessary to migrate a resource.
+ *
  * @author pwinckles
  */
 public class ResourceInfo {
@@ -39,6 +41,15 @@ public class ResourceInfo {
     private final Path innerDirectory;
     private final Type type;
 
+    /**
+     * Create a ResourceInfo instance for a container resource
+     *
+     * @param parentId the internal Fedora id of the resource's parent
+     * @param fullId the internal Fedora id of the resource
+     * @param outerDirectory the export directory that contains the resource
+     * @param nameEncoded the final segment of the fullId, percent encoded
+     * @return resource info
+     */
     public static ResourceInfo container(final String parentId,
                                          final String fullId,
                                          final Path outerDirectory,
@@ -46,6 +57,15 @@ public class ResourceInfo {
         return new ResourceInfo(parentId, fullId, outerDirectory, nameEncoded, Type.CONTAINER);
     }
 
+    /**
+     * Create a ResourceInfo instance for a binary resource
+     *
+     * @param parentId the internal Fedora id of the resource's parent
+     * @param fullId the internal Fedora id of the resource
+     * @param outerDirectory the export directory that contains the resource
+     * @param nameEncoded the final segment of the fullId, percent encoded
+     * @return resource info
+     */
     public static ResourceInfo binary(final String parentId,
                                       final String fullId,
                                       final Path outerDirectory,
@@ -53,6 +73,15 @@ public class ResourceInfo {
         return new ResourceInfo(parentId, fullId, outerDirectory, nameEncoded, Type.BINARY);
     }
 
+    /**
+     * Create a ResourceInfo instance for an external binary resource
+     *
+     * @param parentId the internal Fedora id of the resource's parent
+     * @param fullId the internal Fedora id of the resource
+     * @param outerDirectory the export directory that contains the resource
+     * @param nameEncoded the final segment of the fullId, percent encoded
+     * @return resource info
+     */
     public static ResourceInfo externalBinary(final String parentId,
                                               final String fullId,
                                               final Path outerDirectory,
@@ -73,26 +102,44 @@ public class ResourceInfo {
         this.type = type;
     }
 
+    /**
+     * @return the internal Fedora id of the resource's parent
+     */
     public String getParentId() {
         return parentId;
     }
 
+    /**
+     * @return the internal Fedora id of the resource
+     */
     public String getFullId() {
         return fullId;
     }
 
+    /**
+     * @return the export directory that contains the resource
+     */
     public Path getOuterDirectory() {
         return outerDirectory;
     }
 
+    /**
+     * @return the export directory that contains the contents of the resource
+     */
     public Path getInnerDirectory() {
         return innerDirectory;
     }
 
+    /**
+     * @return the final segment of the fullId, percent encoded
+     */
     public String getNameEncoded() {
         return nameEncoded;
     }
 
+    /**
+     * @return the type of the resource
+     */
     public Type getType() {
         return type;
     }

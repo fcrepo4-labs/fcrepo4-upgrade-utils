@@ -55,6 +55,8 @@ import static java.time.ZoneOffset.UTC;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
+ * Migrates a resource to F6.
+ *
  * @author pwinckles
  */
 public class ResourceMigrator {
@@ -83,6 +85,10 @@ public class ResourceMigrator {
     private final Lang dstRdfLang;
     private final String baseUri;
 
+    /**
+     * @param config the migration configuration
+     * @param objectSessionFactory the OCFL object session factory
+     */
     public ResourceMigrator(final Config config,
                             final OcflObjectSessionFactory objectSessionFactory) {
         this.objectSessionFactory = objectSessionFactory;
@@ -96,6 +102,12 @@ public class ResourceMigrator {
         this.dstRdfLang = Lang.NT;
     }
 
+    /**
+     * Migrates a resource to F6 and returns a list of all of the resources direct children, if it has any.
+     *
+     * @param info the resource to migrate
+     * @return list of direct children, if any
+     */
     public List<ResourceInfo> migrate(final ResourceInfo info) {
         LOGGER.info("Migrating {}", info.getFullId());
         LOGGER.debug("Resource info: {}", info);
@@ -120,6 +132,9 @@ public class ResourceMigrator {
         }
     }
 
+    /**
+     * Closes the object session factory
+     */
     public void close() {
         objectSessionFactory.close();
     }
@@ -267,6 +282,14 @@ public class ResourceMigrator {
         }
     }
 
+    /**
+     * Lists all of the children of a container. This is complicated by the fact that a container can contain ghost
+     * nodes between it and its children. This method will navigate ghost nodes down to the next concrete children.
+     *
+     * @param parentId the internal Fedora id of the container resource
+     * @param containerDir the container's export directory
+     * @return the container's direct children
+     */
     private List<ResourceInfo> listAllChildren(final String parentId, final Path containerDir) {
         final var childMap = listDirectChildren(parentId, containerDir);
         final var children = new ArrayList<>(childMap.values());
@@ -275,8 +298,7 @@ public class ResourceMigrator {
         return ghosts.stream()
                 .map(ghost -> {
                     final var name = decode(ghost.getFileName().toString());
-                    final var id = joinId(parentId, name);
-                    return listAllChildren(id, ghost);
+                    return listAllChildren(joinId(parentId, name), ghost);
                 })
                 .reduce(children, (l, r) -> {
                     l.addAll(r);
@@ -284,6 +306,13 @@ public class ResourceMigrator {
                 });
     }
 
+    /**
+     * Returns all of the children that are children of a container and not within a ghost node.
+     *
+     * @param parentId the internal Fedora id of the container resource
+     * @param containerDir the container's export directory
+     * @return the container's children not under ghost nodes
+     */
     private Map<String, ResourceInfo> listDirectChildren(final String parentId, final Path containerDir) {
         try (final var children = Files.list(containerDir)) {
             return children.filter(Files::isRegularFile)
@@ -312,6 +341,13 @@ public class ResourceMigrator {
         }
     }
 
+    /**
+     * Lists all of the ghost nodes under a container
+     *
+     * @param containerDir the container's export directory
+     * @param children the set of concrete children in the container
+     * @return list of ghost nodes
+     */
     private List<Path> listGhostNodes(final Path containerDir, final Set<String> children) {
         final var ghosts = new ArrayList<Path>();
 

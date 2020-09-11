@@ -23,6 +23,8 @@ import org.slf4j.Logger;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
+ * A task for migrating a resource to F6.
+ *
  * @author pwinckles
  */
 public class MigrateResourceTask implements Runnable {
@@ -33,6 +35,11 @@ public class MigrateResourceTask implements Runnable {
     private final ResourceMigrator resourceMigrator;
     private final ResourceInfo info;
 
+    /**
+     * @param taskManager the task manager that is coordinating migration tasks
+     * @param resourceMigrator the object responsible for performing the migration
+     * @param info the resource to be migrated
+     */
     public MigrateResourceTask(final MigrationTaskManager taskManager,
                                final ResourceMigrator resourceMigrator,
                                final ResourceInfo info) {

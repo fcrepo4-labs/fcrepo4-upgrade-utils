@@ -51,6 +51,8 @@ import java.util.NoSuchElementException;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
+ * Util class for working with RDF.
+ *
  * @author pwinckles
  */
 public final class RdfUtil {
@@ -58,9 +60,16 @@ public final class RdfUtil {
     private static final Logger LOGGER = getLogger(RdfUtil.class);
 
     private RdfUtil() {
-
+        // noop
     }
 
+    /**
+     * Parses an RDF document.
+     *
+     * @param path the path to the document
+     * @param lang the language of the document
+     * @return the parsed RDF
+     */
     public static Model parseRdf(final Path path, final Lang lang) {
         final var model = ModelFactory.createDefaultModel();
         try (final var is = Files.newInputStream(path)) {
@@ -71,6 +80,16 @@ public final class RdfUtil {
         return model;
     }
 
+    /**
+     * Writes RDF to an input stream. Server managed triples are filtered out,
+     * and subject and object uris are translated.
+     *
+     * @param rdf the RDF to serialize
+     * @param lang the RDF language to output
+     * @param original the uri fragment to be replaced
+     * @param replacement the uri fragment to be inserted
+     * @return serialized rdf input stream
+     */
     public static InputStream writeRdfTranslateIds(final Model rdf,
                                                    final Lang lang,
                                                    final String original,
@@ -95,6 +114,13 @@ public final class RdfUtil {
         }
     }
 
+    /**
+     * Returns the first object, parsed as an instant, that matches the predicate.
+     *
+     * @param predicate the predicate to match
+     * @param rdf the RDF to search
+     * @return instant
+     */
     public static Instant getDateValue(final Property predicate, final Model rdf) {
         final var value = getFirstValue(predicate, rdf);
         if (value == null) {
@@ -103,6 +129,13 @@ public final class RdfUtil {
         return Instant.parse(value);
     }
 
+    /**
+     * Returns all of the objects, parsed as URIs, that match the specified predicate.
+     *
+     * @param predicate the predicate to match
+     * @param rdf the RDF to search
+     * @return uris
+     */
     public static List<URI> getUris(final Property predicate, final Model rdf) {
         final var values = new ArrayList<URI>();
         try {
@@ -115,6 +148,13 @@ public final class RdfUtil {
         return values;
     }
 
+    /**
+     * Returns the first object, as a string, that matches the specified predicate.
+     *
+     * @param predicate the predicate to match
+     * @param rdf the RDF to search
+     * @return string
+     */
     public static String getFirstValue(final Property predicate, final Model rdf) {
         try {
             return listStatements(predicate, rdf)
@@ -124,6 +164,13 @@ public final class RdfUtil {
         }
     }
 
+    /**
+     * Returns all of the statements that match a predicate.
+     *
+     * @param predicate the predicate to match
+     * @param rdf the RDF to search
+     * @return statement iter
+     */
     public static StmtIterator listStatements(final Property predicate, final Model rdf) {
         return rdf.listStatements(new SimpleSelector(null, predicate, (RDFNode) null));
     }

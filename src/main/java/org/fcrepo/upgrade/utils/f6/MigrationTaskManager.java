@@ -27,6 +27,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
+ * Task manager for coordinating resource migration tasks.
+ *
  * @author pwinckles
  */
 public class MigrationTaskManager {
@@ -38,6 +40,10 @@ public class MigrationTaskManager {
     private final AtomicLong count;
     private final Object lock;
 
+    /**
+     * @param executorService the executor to queue tasks in
+     * @param resourceMigrator the object responsible for performing the migration
+     */
     public MigrationTaskManager(final ExecutorService executorService,
                                 final ResourceMigrator resourceMigrator) {
         this.executorService = executorService;
@@ -46,6 +52,12 @@ public class MigrationTaskManager {
         this.lock = new Object();
     }
 
+    /**
+     * Submits a new resource to be migrated. This method returns immediately, and the resource is migrated
+     * asynchronously.
+     *
+     * @param info the resource to migrate
+     */
     public void submit(final ResourceInfo info) {
         final var task = new MigrateResourceTask(this, resourceMigrator, info);
 
@@ -63,6 +75,12 @@ public class MigrationTaskManager {
         count.incrementAndGet();
     }
 
+    /**
+     * Blocks until all migration tasks are complete. Note, this does not prevent additional tasks from being submitted.
+     * It simply waits until the queue is empty.
+     *
+     * @throws InterruptedException on interrupt
+     */
     public void awaitCompletion() throws InterruptedException {
         if (count.get() == 0) {
             return;
@@ -75,6 +93,11 @@ public class MigrationTaskManager {
         }
     }
 
+    /**
+     * Shutsdown the executor and closes all resources.
+     *
+     * @throws InterruptedException on interrupt
+     */
     public void shutdown() throws InterruptedException {
         try {
             executorService.shutdown();

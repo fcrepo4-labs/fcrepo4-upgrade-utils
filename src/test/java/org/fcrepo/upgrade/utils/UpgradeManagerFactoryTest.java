@@ -17,9 +17,11 @@
  */
 package org.fcrepo.upgrade.utils;
 
-import static org.junit.Assert.assertTrue;
-
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests the {@link UpgradeManagerFactory}
@@ -28,6 +30,9 @@ import org.junit.Test;
  */
 
 public class UpgradeManagerFactoryTest {
+
+    @Rule
+    public TemporaryFolder temp = new TemporaryFolder();
 
     @Test
     public void testCreateF4To5UpgradeManager() throws Exception {
@@ -43,6 +48,9 @@ public class UpgradeManagerFactoryTest {
         final var config = new Config();
         config.setSourceVersion(FedoraVersion.V_5);
         config.setTargetVersion(FedoraVersion.V_6);
+        config.setBaseUri("http://localhost:8080/rest");
+        config.setInputDir(temp.newFolder());
+        config.setOutputDir(temp.newFolder());
         //run
         assertTrue(UpgradeManagerFactory.create(config) instanceof  F5ToF6UpgradeManager);
     }
