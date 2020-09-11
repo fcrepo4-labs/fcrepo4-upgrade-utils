@@ -63,7 +63,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -73,9 +73,9 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * @author pwinckles
  */
-public class ContainerMigrator {
+public class ResourceMigrator {
 
-    private static final Logger LOGGER = getLogger(ContainerMigrator.class);
+    private static final Logger LOGGER = getLogger(ResourceMigrator.class);
 
     private static final DateTimeFormatter MEMENTO_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(UTC);
 
@@ -98,8 +98,8 @@ public class ContainerMigrator {
     private final ObjectMapper objectMapper;
     private final String baseUri;
 
-    public ContainerMigrator(final Config config,
-                             final OcflObjectSessionFactory objectSessionFactory) {
+    public ResourceMigrator(final Config config,
+                            final OcflObjectSessionFactory objectSessionFactory) {
         this.objectSessionFactory = objectSessionFactory;
         this.objectMapper = new ObjectMapper();
 
@@ -107,30 +107,23 @@ public class ContainerMigrator {
                 Objects.requireNonNull(config.getBaseUri(), "a baseUri must be specified"));
     }
 
-    public List<ResourceInfo> migrateContainer(final ResourceInfo info) {
-        LOGGER.info("Migrating container {}", info.getFullId());
-
-        final var containerDir = info.getInnerDirectory();
+    public List<ResourceInfo> migrate(final ResourceInfo info) {
+        LOGGER.info("Migrating {}", info.getFullId());
+        LOGGER.debug("Resource info: {}", info);
 
         try {
-            if (hasVersions(containerDir)) {
-                final var versions = identifyVersions(containerDir);
-                LOGGER.debug("Resource {} has versions: {}", info.getFullId(), versions);
-
-                final var first = new AtomicBoolean(true);
-
-                versions.forEach(version -> {
-                    migrateContainerVersion(info, containerDir,
-                            containerDir.resolve(FCR_VERSIONS).resolve(version + TTL_EXT),
-                            first.getAndSet(false));
-                });
-            } else {
-                migrateContainerVersion(info, containerDir,
-                        info.getOuterDirectory().resolve(info.getNameEncoded() + TTL_EXT),
-                        true);
+            switch (info.getType()) {
+                case BINARY:
+                    migrateBinary(info);
+                    return new ArrayList<>();
+                case EXTERNAL_BINARY:
+                    migrateExternalBinary(info);
+                    return new ArrayList<>();
+                case CONTAINER:
+                    return migrateContainer(info);
+                default:
+                    throw new IllegalStateException("Unexpected resource type");
             }
-
-            return processChildren(info, containerDir);
         } catch (RuntimeException e) {
             LOGGER.info("Failed to migration resource {}. Rolling back...", info.getFullId());
             deleteObject(info.getFullId());
@@ -142,49 +135,24 @@ public class ContainerMigrator {
         objectSessionFactory.close();
     }
 
-    private List<ResourceInfo> processChildren(final ResourceInfo info, final Path containerDir) {
-        final var children = listAllChildren(info.getFullId(), containerDir);
+    private List<ResourceInfo> migrateContainer(final ResourceInfo info) {
+        final var containerDir = info.getInnerDirectory();
 
-        final var binaries = new ArrayList<ResourceInfo>();
-        final var externalBinaries = new ArrayList<ResourceInfo>();
-        final var containers = new ArrayList<ResourceInfo>();
-
-        children.forEach(child -> {
-            switch (child.getType()) {
-                case BINARY:
-                    binaries.add(child);
-                    break;
-                case EXTERNAL_BINARY:
-                    externalBinaries.add(child);
-                    break;
-                case CONTAINER:
-                    containers.add(child);
-                    break;
-                default:
-                    throw new IllegalStateException("Unmapped resource type");
-            }
+        migrateWithVersions(info, version -> {
+            migrateContainerVersion(info, containerDir,
+                    containerDir.resolve(FCR_VERSIONS).resolve(version + TTL_EXT));
+        }, () -> {
+            migrateContainerVersion(info, containerDir,
+                    info.getOuterDirectory().resolve(info.getNameEncoded() + TTL_EXT));
         });
 
-        try {
-            binaries.forEach(this::migrateBinary);
-            externalBinaries.forEach(this::migrateExternalBinary);
-        } catch (RuntimeException e) {
-            LOGGER.info("Failed to migration resource {}. Rolling back...", info.getFullId());
-            deleteObject(info.getFullId());
-            binaries.forEach(b -> deleteObject(b.getFullId()));
-            externalBinaries.forEach(b -> deleteObject(b.getFullId()));
-            throw e;
-        }
-
-        return containers;
+        return listAllChildren(info.getFullId(), containerDir);
     }
 
     private void migrateContainerVersion(final ResourceInfo info,
                                          final Path containerDir,
-                                         final Path rdfFile,
-                                         final boolean isFirstVersion) {
+                                         final Path rdfFile) {
         final var rdf = parseRdf(rdfFile);
-
         final var interactionModel = identifyInteractionModel(info.getFullId(), rdf);
 
         if (interactionModel != InteractionModel.BASIC_CONTAINER) {
@@ -193,98 +161,87 @@ public class ContainerMigrator {
                             " Migrating direct/indirect containers is not currently supported.", info.getFullId()));
         }
 
-        final var headers = createContainerHeaders(info.getParentId(), info.getFullId(), interactionModel,rdf);
+        final var headers = createContainerHeaders(info, interactionModel, rdf);
 
-        final var session = objectSessionFactory.newSession(info.getFullId());
-        try {
+        doInSession(info.getFullId(), session -> {
+            final var isFirst = session.containsResource(info.getFullId());
+
             session.versionCreationTimestamp(headers.getLastModifiedDate().atOffset(ZoneOffset.UTC));
             session.writeResource(headers, writeRdf(info.getFullId(), rdf));
 
-            if (isFirstVersion && hasAcl(containerDir)) {
+            if (isFirst && hasAcl(containerDir)) {
                 migrateAcl(info.getFullId(), containerDir, session);
             }
 
             session.commit();
-        } catch (RuntimeException e) {
-            session.abort();
-            throw new RuntimeException("Failed to migrate resource " + info.getFullId(), e);
-        }
+        });
     }
 
     private void migrateBinary(final ResourceInfo info) {
-        final var fullId = info.getFullId();
-
-        LOGGER.info("Migrating binary {}", fullId);
-
         final var binaryDir = info.getInnerDirectory();
 
-        if (hasVersions(binaryDir)) {
-            final var versions = identifyVersions(binaryDir);
-            LOGGER.debug("Resource {} has versions: {}", fullId, versions);
-
-            final var first = new AtomicBoolean(true);
-
-            versions.forEach(version -> {
-                migrateBinaryVersion(info.getParentId(), fullId, binaryDir,
-                        binaryDir.resolve(FCR_VERSIONS).resolve(version + BINARY_EXT),
-                        binaryDir.resolve(FCR_METADATA).resolve(FCR_VERSIONS).resolve(version + TTL_EXT),
-                        first.getAndSet(false));
-            });
-        } else {
-            migrateBinaryVersion(info.getParentId(), fullId, binaryDir,
+        migrateWithVersions(info, version -> {
+            migrateBinaryVersion(info, binaryDir,
+                    binaryDir.resolve(FCR_VERSIONS).resolve(version + BINARY_EXT),
+                    binaryDir.resolve(FCR_METADATA).resolve(FCR_VERSIONS).resolve(version + TTL_EXT));
+        }, () -> {
+            migrateBinaryVersion(info, binaryDir,
                     info.getOuterDirectory().resolve(info.getNameEncoded() + BINARY_EXT),
-                    binaryDir.resolve(FCR_METADATA + TTL_EXT),
-                    true);
-        }
+                    binaryDir.resolve(FCR_METADATA + TTL_EXT));
+        });
     }
 
-    private void migrateBinaryVersion(final String parentId,
-                                      final String fullId,
+    private void migrateBinaryVersion(final ResourceInfo info,
                                       final Path binaryDir,
                                       final Path binaryFile,
-                                      final Path descFile,
-                                      final boolean isFirstVersion) {
+                                      final Path descFile) {
         final var rdf = parseRdf(descFile);
-        final var headers = createBinaryHeaders(parentId, fullId, rdf);
+        final var headers = createBinaryHeaders(info, rdf);
 
-        final var descId = joinId(fullId, FCR_METADATA_ID);
-        final var descHeaders = createBinaryDescHeaders(fullId, descId, rdf);
+        final var descId = joinId(info.getFullId(), FCR_METADATA_ID);
+        final var descHeaders = createBinaryDescHeaders(info.getFullId(), descId, rdf);
 
         try (final var stream = Files.newInputStream(binaryFile)) {
-            writeBinary(fullId, binaryDir, headers, stream, descHeaders, rdf, isFirstVersion);
+            writeBinary(info.getFullId(), binaryDir, headers, stream, descHeaders, rdf);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     private void migrateExternalBinary(final ResourceInfo info) {
-        final var fullId = info.getFullId();
-
-        LOGGER.info("Migrating external binary {}", fullId);
-
-        final var descFile = info.getInnerDirectory().resolve(FCR_METADATA + TTL_EXT);
-        final var rdf = parseRdf(descFile);
-        final var headers = createBinaryHeaders(info.getParentId(), fullId, rdf);
+        final var rdf = parseRdf(info.getInnerDirectory().resolve(FCR_METADATA + TTL_EXT));
+        final var headers = createBinaryHeaders(info, rdf);
 
         final var externalResource = parseExternalResource(info);
         headers.setExternalUrl(externalResource.location);
         headers.setExternalHandling(externalResource.handling);
 
-        final var descId = joinId(fullId, FCR_METADATA_ID);
-        final var descHeaders = createBinaryDescHeaders(fullId, descId, rdf);
+        final var descId = joinId(info.getFullId(), FCR_METADATA_ID);
+        final var descHeaders = createBinaryDescHeaders(info.getFullId(), descId, rdf);
 
-        writeBinary(fullId, info.getInnerDirectory(), headers, null, descHeaders, rdf, true);
+        writeBinary(info.getFullId(), info.getInnerDirectory(), headers, null, descHeaders, rdf);
     }
 
     private void migrateAcl(final String parentId, final Path directory, final OcflObjectSession session) {
         final var fullId = joinId(parentId, FCR_ACL_ID);
-        LOGGER.info("Migrating acl {}", fullId);
+        LOGGER.info("Migrating {}", fullId);
 
-        final var file = directory.resolve(FCR_ACL + TTL_EXT);
-        final var rdf = parseRdf(file);
+        final var rdf = parseRdf(directory.resolve(FCR_ACL + TTL_EXT));
         final var headers = createAclHeaders(parentId, fullId, rdf);
 
         session.writeResource(headers, writeRdf(fullId, rdf));
+    }
+
+    private void migrateWithVersions(final ResourceInfo info,
+                                     final Consumer<String> versioned,
+                                     final Runnable unversioned) {
+        if (hasVersions(info.getInnerDirectory())) {
+            final var versions = identifyVersions(info.getInnerDirectory());
+            LOGGER.debug("Resource {} has versions: {}", info.getFullId(), versions);
+            versions.forEach(versioned);
+        } else {
+            unversioned.run();
+        }
     }
 
     private void writeBinary(final String fullId,
@@ -292,24 +249,20 @@ public class ContainerMigrator {
                              final ResourceHeaders contentHeaders,
                              final InputStream content,
                              final ResourceHeaders descHeaders,
-                             final Model rdf,
-                             final boolean isFirstVersion) {
-        final var session = objectSessionFactory.newSession(fullId);
+                             final Model rdf) {
+        doInSession(fullId, session -> {
+            final var isFirst = session.containsResource(fullId);
 
-        try {
             session.versionCreationTimestamp(contentHeaders.getLastModifiedDate().atOffset(ZoneOffset.UTC));
             session.writeResource(contentHeaders, content);
             session.writeResource(descHeaders, writeRdf(fullId, rdf));
 
-            if (isFirstVersion && hasAcl(binaryDir)) {
+            if (isFirst && hasAcl(binaryDir)) {
                 migrateAcl(fullId, binaryDir, session);
             }
 
             session.commit();
-        } catch (RuntimeException e) {
-            session.abort();
-            throw new RuntimeException("Failed to migrate resource " + fullId, e);
-        }
+        });
     }
 
     private void deleteObject(final String fullId) {
@@ -424,6 +377,16 @@ public class ContainerMigrator {
         throw new IllegalStateException("Failed to identify interaction model for resource " + fullId);
     }
 
+    private void doInSession(final String fullId, final Consumer<OcflObjectSession> runnable) {
+        final var session = objectSessionFactory.newSession(fullId);
+        try {
+            runnable.accept(session);
+        } catch (RuntimeException e) {
+            session.abort();
+            throw new RuntimeException("Failed to migrate resource " + fullId, e);
+        }
+    }
+
     private ResourceHeaders createCommonHeaders(final String parentId,
                                                 final String fullId,
                                                 final InteractionModel interactionModel,
@@ -444,11 +407,11 @@ public class ContainerMigrator {
         return headers;
     }
 
-    private ResourceHeaders createContainerHeaders(final String parentId,
-                                                   final String fullId,
+    private ResourceHeaders createContainerHeaders(final ResourceInfo info,
                                                    final InteractionModel interactionModel,
                                                    final Model rdf) {
-        final var headers = createCommonHeaders(parentId, fullId, interactionModel, rdf);
+        final var headers = createCommonHeaders(info.getParentId(), info.getFullId(),
+                interactionModel, rdf);
         headers.setObjectRoot(true);
         return headers;
     }
@@ -465,8 +428,9 @@ public class ContainerMigrator {
         return headers;
     }
 
-    private ResourceHeaders createBinaryHeaders(final String parentId, final String fullId, final Model rdf) {
-        final var headers = createCommonHeaders(parentId, fullId, InteractionModel.NON_RDF, rdf);
+    private ResourceHeaders createBinaryHeaders(final ResourceInfo info, final Model rdf) {
+        final var headers = createCommonHeaders(info.getParentId(), info.getFullId(),
+                InteractionModel.NON_RDF, rdf);
         headers.setObjectRoot(true);
         headers.setContentSize(Long.valueOf(getFirstValue(RdfConstants.HAS_SIZE, rdf)));
         headers.setDigests(getAllUris(RdfConstants.HAS_MESSAGE_DIGEST, rdf));

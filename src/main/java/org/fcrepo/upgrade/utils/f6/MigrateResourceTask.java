@@ -25,26 +25,26 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * @author pwinckles
  */
-public class MigrateContainerTask implements Runnable {
+public class MigrateResourceTask implements Runnable {
 
-    private static final Logger LOGGER = getLogger(MigrateContainerTask.class);
+    private static final Logger LOGGER = getLogger(MigrateResourceTask.class);
 
     private final MigrationTaskManager taskManager;
-    private final ContainerMigrator containerMigrator;
+    private final ResourceMigrator resourceMigrator;
     private final ResourceInfo info;
 
-    public MigrateContainerTask(final MigrationTaskManager taskManager,
-                                final ContainerMigrator containerMigrator,
-                                final ResourceInfo info) {
+    public MigrateResourceTask(final MigrationTaskManager taskManager,
+                               final ResourceMigrator resourceMigrator,
+                               final ResourceInfo info) {
         this.taskManager = taskManager;
-        this.containerMigrator = containerMigrator;
+        this.resourceMigrator = resourceMigrator;
         this.info = info;
     }
 
     @Override
     public void run() {
         try {
-            final var children = containerMigrator.migrateContainer(info);
+            final var children = resourceMigrator.migrate(info);
             children.forEach(taskManager::submit);
             // TODO Failures could be logged to a file for reprocessing at a later date
         } catch (UnsupportedOperationException e) {

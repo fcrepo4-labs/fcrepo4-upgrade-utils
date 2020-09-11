@@ -31,7 +31,7 @@ import org.apache.commons.lang3.SystemUtils;
 import org.fcrepo.storage.ocfl.CommitType;
 import org.fcrepo.storage.ocfl.DefaultOcflObjectSessionFactory;
 import org.fcrepo.storage.ocfl.OcflObjectSessionFactory;
-import org.fcrepo.upgrade.utils.f6.ContainerMigrator;
+import org.fcrepo.upgrade.utils.f6.ResourceMigrator;
 import org.fcrepo.upgrade.utils.f6.MigrationTaskManager;
 
 import java.io.IOException;
@@ -72,7 +72,7 @@ public class UpgradeManagerFactory {
         final var threads = Objects.requireNonNullElseGet(config.getThreads(),
                 () -> Runtime.getRuntime().availableProcessors());
         final var executor = Executors.newFixedThreadPool(threads);
-        final var migrator = new ContainerMigrator(config, createOcflObjectSessionFactory(config));
+        final var migrator = new ResourceMigrator(config, createOcflObjectSessionFactory(config));
         return new MigrationTaskManager(executor, migrator);
     }
 

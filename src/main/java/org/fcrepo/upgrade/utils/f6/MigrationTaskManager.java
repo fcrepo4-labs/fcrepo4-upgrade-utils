@@ -34,20 +34,20 @@ public class MigrationTaskManager {
     private static final Logger LOGGER = getLogger(MigrationTaskManager.class);
 
     private final ExecutorService executorService;
-    private final ContainerMigrator containerMigrator;
+    private final ResourceMigrator resourceMigrator;
     private final AtomicLong count;
     private final Object lock;
 
     public MigrationTaskManager(final ExecutorService executorService,
-                                final ContainerMigrator containerMigrator) {
+                                final ResourceMigrator resourceMigrator) {
         this.executorService = executorService;
-        this.containerMigrator = containerMigrator;
+        this.resourceMigrator = resourceMigrator;
         this.count = new AtomicLong(0);
         this.lock = new Object();
     }
 
     public void submit(final ResourceInfo info) {
-        final var task = new MigrateContainerTask(this, containerMigrator, info);
+        final var task = new MigrateResourceTask(this, resourceMigrator, info);
 
         executorService.submit(() -> {
             try {
@@ -83,7 +83,7 @@ public class MigrationTaskManager {
                 executorService.shutdownNow();
             }
         } finally {
-            containerMigrator.close();
+            resourceMigrator.close();
         }
     }
 
