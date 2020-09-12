@@ -98,7 +98,7 @@ public class UpgradeManagerFactory {
     private static MutableOcflRepository createOcflRepo(final Config config,
                                                         final Path storageRoot,
                                                         final Path workDir) {
-        final var logicalPathMapper = SystemUtils.IS_OS_WINDOWS ?
+        final var logicalPathMapper = SystemUtils.IS_OS_WINDOWS || config.isForceWindowsMode() ?
                 LogicalPathMappers.percentEncodingWindowsMapper() : LogicalPathMappers.percentEncodingLinuxMapper();
 
         final var digestAlgorithm = DigestAlgorithm.fromOcflName(config.getDigestAlgorithm());

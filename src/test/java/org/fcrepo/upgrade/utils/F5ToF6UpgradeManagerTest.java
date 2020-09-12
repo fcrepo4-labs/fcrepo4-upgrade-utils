@@ -19,6 +19,7 @@
 package org.fcrepo.upgrade.utils;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,6 +34,7 @@ import java.nio.file.Paths;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -51,6 +53,7 @@ public class F5ToF6UpgradeManagerTest {
         out = tempFolder.newFolder().toPath();
 
         config = new Config();
+        config.setForceWindowsMode(true);
         config.setOutputDir(out.toFile());
         config.setSourceVersion(FedoraVersion.V_5);
         config.setTargetVersion(FedoraVersion.V_6);
@@ -75,7 +78,7 @@ public class F5ToF6UpgradeManagerTest {
         final var expectedFiles = listAllFiles(expectedRoot);
         final var actualFiles = listAllFiles(actualRoot);
 
-        assertEquals(expectedFiles, actualFiles);
+        assertThat(actualFiles, Matchers.containsInAnyOrder(expectedFiles.toArray(new String[0])));
 
         for (final var file : expectedFiles) {
             final var expectedFile = expectedRoot.resolve(file);

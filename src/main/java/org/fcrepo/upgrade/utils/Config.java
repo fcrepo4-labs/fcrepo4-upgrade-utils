@@ -48,6 +48,7 @@ public class Config {
     private String digestAlgorithm = DEFAULT_DIGEST_ALGORITHM;
     private String fedoraUser = DEFAULT_USER;
     private String fedoraUserAddress = DEFAULT_USER_ADDRESS;
+    private boolean forceWindowsMode = false;
 
     /**
      * Set the version of the source to be transformed.
@@ -226,6 +227,24 @@ public class Config {
         } else {
             this.srcRdfLang = srcRdfLang;
         }
+    }
+
+    /**
+     * This is just used for testing
+     *
+     * @return indicates whether or not OCFL should be forced into Windows mode
+     */
+    public boolean isForceWindowsMode() {
+        return forceWindowsMode;
+    }
+
+    /**
+     * This is just used for testing
+     *
+     * @param forceWindowsMode true if OCFL should be forced into Windows mode
+     */
+    public void setForceWindowsMode(final boolean forceWindowsMode) {
+        this.forceWindowsMode = forceWindowsMode;
     }
 
     @Override
