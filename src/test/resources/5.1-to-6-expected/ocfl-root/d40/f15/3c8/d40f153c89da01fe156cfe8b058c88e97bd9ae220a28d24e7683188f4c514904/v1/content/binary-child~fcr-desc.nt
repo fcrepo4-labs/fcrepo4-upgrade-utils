@@ -1,3 +1,1 @@
 <info:fedora/container-with-children/binary-child> <http://www.iana.org/assignments/relation/describedby> <info:fedora/container-with-children/binary-child/fcr:metadata> .
-<info:fedora/container-with-children/binary-child> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Binary> .
-<info:fedora/container-with-children/binary-child> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Resource> .

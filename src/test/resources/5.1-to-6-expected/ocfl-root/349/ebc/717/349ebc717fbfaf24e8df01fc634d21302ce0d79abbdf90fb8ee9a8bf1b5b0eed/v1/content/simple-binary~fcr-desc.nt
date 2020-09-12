@@ -1,3 +1,1 @@
-<info:fedora/simple-binary> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Resource> .
 <info:fedora/simple-binary> <http://www.iana.org/assignments/relation/describedby> <info:fedora/simple-binary/fcr:metadata> .
-<info:fedora/simple-binary> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Binary> .

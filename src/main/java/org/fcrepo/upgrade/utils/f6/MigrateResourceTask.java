@@ -20,6 +20,9 @@ package org.fcrepo.upgrade.utils.f6;
 
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -50,15 +53,25 @@ public class MigrateResourceTask implements Runnable {
 
     @Override
     public void run() {
+        List<ResourceInfo> children = new ArrayList<>();
+
         try {
-            final var children = resourceMigrator.migrate(info);
-            children.forEach(taskManager::submit);
+            children = resourceMigrator.migrate(info);
             // TODO Failures could be logged to a file for reprocessing at a later date
         } catch (UnsupportedOperationException e) {
             // This is thrown when a resource is encountered that is not currently handled
             LOGGER.error(e.getMessage());
         } catch (RuntimeException e) {
             LOGGER.error("Failed to process {}", info, e);
+        }
+
+        for (final var child : children) {
+            try {
+                taskManager.submit(child);
+            } catch (RuntimeException e) {
+                // TODO log to file for reprocessing
+                LOGGER.warn("Failed to queue {} for migration", child.getFullId());
+            }
         }
     }
 

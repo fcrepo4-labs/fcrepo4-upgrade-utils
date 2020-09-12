@@ -137,15 +137,13 @@ public final class RdfUtil {
      * @return uris
      */
     public static List<URI> getUris(final Property predicate, final Model rdf) {
-        final var values = new ArrayList<URI>();
         try {
-            listStatements(predicate, rdf)
+            return listStatements(predicate, rdf)
                     .mapWith(statement -> URI.create(statement.getObject().toString()))
                     .toList();
         } catch (NoSuchElementException e) {
-            // ignore
+            return new ArrayList<>();
         }
-        return values;
     }
 
     /**
@@ -176,9 +174,18 @@ public final class RdfUtil {
     }
 
     private static boolean isServerManagedTriple(final Statement statement) {
-        return (statement.getPredicate().equals(RDF.type) && statement.getObject().isURIResource() &&
-                statement.getObject().toString().startsWith(RdfConstants.LDP_NS)) ||
+        return isManagedType(statement) ||
                 RdfConstants.isManagedPredicate.test(statement.getPredicate());
+    }
+
+    private static boolean isManagedType(final Statement statement) {
+        return statement.getPredicate().equals(RDF.type) && statement.getObject().isURIResource() &&
+                (startsWith(statement.getObject(), RdfConstants.LDP_NS) ||
+                        startsWith(statement.getObject(), RdfConstants.FEDORA_NS));
+    }
+
+    private static boolean startsWith(final RDFNode node, final String prefix) {
+        return node.toString().startsWith(prefix);
     }
 
     private static Node translateId(final Node node, final String original, final String replacement) {

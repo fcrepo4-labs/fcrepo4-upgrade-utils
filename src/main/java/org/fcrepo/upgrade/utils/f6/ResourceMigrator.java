@@ -151,8 +151,9 @@ public class ResourceMigrator {
                 LOGGER.info("Migrating {}/fcr:versions/{}", info.getFullId(), version);
                 final var rdf = readRdf(containerDir.resolve(FCR_VERSIONS).resolve(rdfFile(version)));
                 lastVersionUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+                final var mementoInstant = parseMemento(version);
 
-                migrateContainerVersion(info, containerDir, rdf);
+                migrateContainerVersion(info, containerDir, rdf, mementoInstant);
             }
         }
 
@@ -161,7 +162,7 @@ public class ResourceMigrator {
 
         // only migrate the state if it's different from the most recent memento
         if (lastVersionUpdate == null || !lastVersionUpdate.equals(currentUpdate)) {
-            migrateContainerVersion(info, containerDir, rdf);
+            migrateContainerVersion(info, containerDir, rdf, currentUpdate);
         }
 
         return listAllChildren(info.getFullId(), info.getFullId(), containerDir);
@@ -169,7 +170,8 @@ public class ResourceMigrator {
 
     private void migrateContainerVersion(final ResourceInfo info,
                                          final Path containerDir,
-                                         final Model rdf) {
+                                         final Model rdf,
+                                         final Instant timestamp) {
         final var interactionModel = identifyInteractionModel(info.getFullId(), rdf);
 
         if (interactionModel != InteractionModel.BASIC_CONTAINER) {
@@ -183,7 +185,7 @@ public class ResourceMigrator {
         doInSession(info.getFullId(), session -> {
             final var isFirst = !session.containsResource(info.getFullId());
 
-            session.versionCreationTimestamp(headers.getLastModifiedDate().atOffset(ZoneOffset.UTC));
+            session.versionCreationTimestamp(timestamp.atOffset(ZoneOffset.UTC));
             session.writeResource(headers, writeRdf(rdf));
 
             if (isFirst && hasAcl(containerDir)) {
@@ -207,9 +209,10 @@ public class ResourceMigrator {
                 final var rdf = readRdf(binaryDir.resolve(FCR_METADATA)
                         .resolve(FCR_VERSIONS).resolve(rdfFile(version)));
                 lastVersionUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+                final var mementoInstant = parseMemento(version);
 
                 migrateBinaryVersion(info, binaryDir,
-                        binaryDir.resolve(FCR_VERSIONS).resolve(binaryFile(version)), rdf);
+                        binaryDir.resolve(FCR_VERSIONS).resolve(binaryFile(version)), rdf, mementoInstant);
             }
         }
 
@@ -219,21 +222,22 @@ public class ResourceMigrator {
         // only migrate the state if it's different from the most recent memento
         if (lastVersionUpdate == null || !lastVersionUpdate.equals(currentUpdate)) {
             migrateBinaryVersion(info, binaryDir,
-                    info.getOuterDirectory().resolve(binaryFile(info.getNameEncoded())), rdf);
+                    info.getOuterDirectory().resolve(binaryFile(info.getNameEncoded())), rdf, currentUpdate);
         }
     }
 
     private void migrateBinaryVersion(final ResourceInfo info,
                                       final Path binaryDir,
                                       final Path binaryFile,
-                                      final Model rdf) {
+                                      final Model rdf,
+                                      final Instant timestamp) {
         final var headers = createBinaryHeaders(info, rdf);
 
         final var descId = joinId(info.getFullId(), FCR_METADATA_ID);
         final var descHeaders = createBinaryDescHeaders(info.getFullId(), descId, rdf);
 
         try (final var stream = Files.newInputStream(binaryFile)) {
-            writeBinary(info.getFullId(), binaryDir, headers, stream, descHeaders, rdf);
+            writeBinary(info.getFullId(), binaryDir, headers, stream, descHeaders, rdf, timestamp);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -250,7 +254,8 @@ public class ResourceMigrator {
         final var descId = joinId(info.getFullId(), FCR_METADATA_ID);
         final var descHeaders = createBinaryDescHeaders(info.getFullId(), descId, rdf);
 
-        writeBinary(info.getFullId(), info.getInnerDirectory(), headers, null, descHeaders, rdf);
+        writeBinary(info.getFullId(), info.getInnerDirectory(), headers,
+                null, descHeaders, rdf, headers.getLastModifiedDate());
     }
 
     private void migrateAcl(final String parentId, final Path directory, final OcflObjectSession session) {
@@ -268,11 +273,12 @@ public class ResourceMigrator {
                              final ResourceHeaders contentHeaders,
                              final InputStream content,
                              final ResourceHeaders descHeaders,
-                             final Model rdf) {
+                             final Model rdf,
+                             final Instant timestamp) {
         doInSession(fullId, session -> {
             final var isFirst = !session.containsResource(fullId);
 
-            session.versionCreationTimestamp(contentHeaders.getLastModifiedDate().atOffset(ZoneOffset.UTC));
+            session.versionCreationTimestamp(timestamp.atOffset(ZoneOffset.UTC));
             session.writeResource(contentHeaders, content);
             session.writeResource(descHeaders, writeRdf(rdf));
 
@@ -394,11 +400,15 @@ public class ResourceMigrator {
                     .map(f -> f.getFileName().toString())
                     .filter(f -> !f.endsWith(HEADERS_EXT))
                     .map(f -> f.substring(0, f.lastIndexOf(".")))
-                    .sorted(Comparator.comparing(n -> Instant.from(MEMENTO_FORMAT.parse(n))))
+                    .sorted(Comparator.comparing(this::parseMemento))
                     .collect(Collectors.toList());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private Instant parseMemento(final String memento) {
+        return Instant.from(MEMENTO_FORMAT.parse(memento));
     }
 
     private InteractionModel identifyInteractionModel(final String fullId, final Model rdf) {
@@ -440,6 +450,10 @@ public class ResourceMigrator {
         headers.setLastModifiedBy(RdfUtil.getFirstValue(RdfConstants.FEDORA_LAST_MODIFIED_BY, rdf));
         headers.setLastModifiedDate(RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf));
         headers.setStateToken(calculateStateToken(headers.getLastModifiedDate()));
+
+        if (headers.getCreatedDate() == null) {
+            headers.setCreatedDate(headers.getLastModifiedDate());
+        }
 
         return headers;
     }

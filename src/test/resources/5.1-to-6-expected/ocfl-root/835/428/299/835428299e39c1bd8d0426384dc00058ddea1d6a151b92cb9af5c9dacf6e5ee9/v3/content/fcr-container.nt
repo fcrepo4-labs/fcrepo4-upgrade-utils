@@ -1,5 +1,3 @@
-<info:fedora/container-with-versions> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Resource> .
 <info:fedora/container-with-versions> <http://purl.org/dc/elements/1.1/title> "container version 3" .
 <info:fedora/container-with-versions> <http://purl.org/dc/elements/1.1/title> "container version 1" .
 <info:fedora/container-with-versions> <http://purl.org/dc/elements/1.1/title> "container version 2" .
-<info:fedora/container-with-versions> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Container> .
