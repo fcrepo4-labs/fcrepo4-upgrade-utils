@@ -17,9 +17,12 @@
  */
 package org.fcrepo.upgrade.utils;
 
+import static org.fcrepo.upgrade.utils.HttpConstants.CONTENT_LOCATION_HEADER;
 import static org.fcrepo.upgrade.utils.HttpConstants.CONTENT_TYPE_HEADER;
 import static org.fcrepo.upgrade.utils.HttpConstants.LOCATION_HEADER;
 import static org.fcrepo.upgrade.utils.RdfConstants.EBUCORE_HAS_MIME_TYPE;
+import static org.fcrepo.upgrade.utils.RdfConstants.LDP_BASIC_CONTAINER;
+import static org.fcrepo.upgrade.utils.RdfConstants.LDP_CONTAINER_TYPES;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
@@ -35,12 +38,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
-import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
@@ -103,19 +106,28 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
                 final AtomicBoolean isBinary = new AtomicBoolean(false);
                 final AtomicBoolean isExternal = new AtomicBoolean(false);
+                final AtomicBoolean isContainer = new AtomicBoolean(false);
+                final AtomicBoolean isConcreteContainerDefined = new AtomicBoolean(false);
+                final AtomicReference<Resource> containerSubject = new AtomicReference<>();
+                final AtomicBoolean rewriteModel = new AtomicBoolean();
 
                 // toList here because we may need to modify the model mid-iteration
                 model.listStatements().toList().forEach(statement -> {
                     if (statement.getPredicate().equals(RDF.type)) {
                         final Resource object = statement.getObject().asResource();
+
                         if (object.equals(RdfConstants.LDP_NON_RDFSOURCE)) {
                             isBinary.set(true);
+                        } else if (object.equals(RdfConstants.LDP_CONTAINER)) {
+                            isContainer.set(true);
+                            containerSubject.set(statement.getSubject());
+                        } else if (LDP_CONTAINER_TYPES.contains(object)) {
+                            isConcreteContainerDefined.set(true);
                         }
 
                         if (!headers.containsKey("Link")) {
                             headers.put("Link", new ArrayList<String>());
                         }
-
 
                         final FcrepoLink link = FcrepoLink.fromUri(object.getURI()).rel("type").build();
                         headers.get("Link").add(link.toString());
@@ -133,16 +145,12 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
                             }
 
                             LOGGER.debug("externalURI={}", externalURI);
-                            try {
-                                model.remove(statement);
-                                model.add(statement.getSubject(), statement.getPredicate(), "application/octet-stream");
-                                RDFDataMgr.write(new FileOutputStream(newLocation.toFile()), model, Lang.TTL);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-
+                            model.remove(statement);
+                            model.add(statement.getSubject(), statement.getPredicate(), "application/octet-stream");
+                            rewriteModel.set(true);
                             if (externalURI != null) {
                                 headers.put(LOCATION_HEADER, Collections.singletonList(externalURI));
+                                headers.put(CONTENT_LOCATION_HEADER, Collections.singletonList(externalURI));
                                 isExternal.set(true);
                             }
                         } else {
@@ -154,6 +162,23 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
                     }
                 });
 
+                // While F5 assumes BasicContainer when no concrete container is not present in the RDF on import,
+                // the F5->F6 upgrade pathway requires its presence.  Thus I add it here for consistency.
+                // As a note, when an F5 repository is exported the BasicContainer type triple will be present in
+                // the exported RDF.
+                if (isContainer.get() && !isConcreteContainerDefined.get()) {
+                    model.add(containerSubject.get(), RDF.type, LDP_BASIC_CONTAINER);
+                    rewriteModel.set(true);
+                }
+
+                // write only if the model as changed.
+                if (rewriteModel.get()) {
+                    try {
+                        RDFDataMgr.write(new FileOutputStream(newLocation.toFile()), model, Lang.TTL);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
 
                 String headersPrefix;
 
@@ -167,6 +192,9 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
                 LOGGER.debug("isBinary={}", isBinary.get());
                 LOGGER.debug("isExternal={}", isExternal.get());
                 LOGGER.debug("headersPrefix={}", headersPrefix);
+                LOGGER.debug("isContainer={}", isContainer);
+                LOGGER.debug("isConcreteContainerDefined={}", isConcreteContainerDefined);
+                LOGGER.debug("containerSubject={}", containerSubject);
 
                 writeHeadersFile(headers, new File(headersPrefix + ".headers"));
 

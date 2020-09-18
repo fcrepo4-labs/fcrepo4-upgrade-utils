@@ -29,4 +29,5 @@ public class HttpConstants {
 
     public static final String CONTENT_TYPE_HEADER = "Content-Type";
     public static final String LOCATION_HEADER = "Location";
+    public static final String CONTENT_LOCATION_HEADER = "Content-Location";
 }
