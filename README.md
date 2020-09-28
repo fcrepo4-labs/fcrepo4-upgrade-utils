@@ -1,7 +1,7 @@
-Fedora 4 Utilities
+Fedora Utilities
 ==================
 
-Utilities for maintaining the [Fedora Commons repository](http://github.com/fcrepo4/fcrepo4).
+Utilities for maintaining the [Fedora Commons repository](http://github.com/fcrepo/fcrepo).
 
 Building
 --------
@@ -17,6 +17,6 @@ Running
 
 
 ``` sh
-java -jar /path/to/fcrepo4-upgrade-utils/target/fcrepo-upgrade-utils-<version>.jar -h
+java -jar /path/to/fcrepo-upgrade-utils/target/fcrepo-upgrade-utils-<version>.jar -h
 ```
 

@@ -34,7 +34,7 @@
 
   <properties>
     <project_name>fcrepo-upgrade-utils</project_name>
-    <project_organization>fcrepo4-exts</project_organization>
+    <project_organization>fcrepo-exts</project_organization>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.copyrightYear>2019</project.copyrightYear>
@@ -246,6 +246,6 @@
 
   <issueManagement>
     <system>GitHub</system>
-    <url>https://github.com/fcrepo4-exts/fcrepo-upgrade-utils/issues</url>
+    <url>https://github.com/fcrepo-exts/fcrepo-upgrade-utils/issues</url>
   </issueManagement>
 </project>
