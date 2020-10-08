@@ -1,0 +1,22 @@
+@prefix premis:  <http://www.loc.gov/premis/rdf/v1#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix ebucore:  <http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+@prefix iana:  <http://www.iana.org/assignments/relation/> .
+
+<http://localhost:8080/rest/objects/raven/pages/cover/files/cover.txt>
+        rdf:type                 <http://pcdm.org/models#File> ;
+        rdf:type                 fedora:Binary ;
+        rdf:type                 fedora:Resource ;
+        fedora:lastModifiedBy    "bypassAdmin" ;
+        premis:hasSize           "15"^^<http://www.w3.org/2001/XMLSchema#long> ;
+        ebucore:hasMimeType      "text/plain" ;
+        fedora:createdBy         "bypassAdmin" ;
+        fedora:lastModified      "2020-10-07T18:43:40.133Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        fedora:created           "2020-10-07T18:43:28.304Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        premis:hasMessageDigest  <urn:sha1:19d231d0b3419508b254e72fc249713e96119f56> ;
+        ebucore:filename         "" ;
+        rdf:type                 ldp:NonRDFSource ;
+        iana:describedby         <http://localhost:8080/rest/objects/raven/pages/cover/files/cover.txt/fcr:metadata> ;
+        fedora:hasFixityService  <http://localhost:8080/rest/objects/raven/pages/cover/files/cover.txt/fcr:fixity> .

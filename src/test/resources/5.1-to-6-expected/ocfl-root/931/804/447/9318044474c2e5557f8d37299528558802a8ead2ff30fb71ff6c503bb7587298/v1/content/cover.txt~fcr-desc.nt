@@ -1,0 +1,2 @@
+<info:fedora/objects/raven/pages/cover/files/cover.txt> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://pcdm.org/models#File> .
+<info:fedora/objects/raven/pages/cover/files/cover.txt> <http://www.iana.org/assignments/relation/describedby> <info:fedora/objects/raven/pages/cover/files/cover.txt/fcr:metadata> .

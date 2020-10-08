@@ -1,0 +1,20 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+
+<http://localhost:8080/rest/objects/raven/pages>
+        rdf:type                fedora:Container ;
+        rdf:type                fedora:Resource ;
+        rdf:type                ldp:DirectContainer ;
+        rdf:type                <http://pcdm.org/models#Object> ;
+        fedora:lastModifiedBy   "bypassAdmin" ;
+        fedora:createdBy        "bypassAdmin" ;
+        fedora:created          "2020-10-07T18:01:27.569Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        fedora:lastModified     "2020-10-07T18:19:52.042Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        ldp:membershipResource  <http://localhost:8080/rest/objects/raven> ;
+        ldp:hasMemberRelation   <http://pcdm.org/models#hasMember> ;
+        rdf:type                ldp:RDFSource ;
+        rdf:type                ldp:Container ;
+        ldp:contains            <http://localhost:8080/rest/objects/raven/pages/cover> ;
+        ldp:contains            <http://localhost:8080/rest/objects/raven/pages/page0> ;
+        ldp:contains            <http://localhost:8080/rest/objects/raven/pages/page1> .

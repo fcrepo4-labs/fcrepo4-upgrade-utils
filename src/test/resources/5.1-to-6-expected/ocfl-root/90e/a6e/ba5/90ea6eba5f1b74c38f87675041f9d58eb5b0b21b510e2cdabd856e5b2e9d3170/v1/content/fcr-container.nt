@@ -1,0 +1,4 @@
+<info:fedora/collections/poe/members> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://pcdm.org/models#Object> .
+<info:fedora/collections/poe/members> <http://www.w3.org/ns/ldp#membershipResource> <info:fedora/collections/poe> .
+<info:fedora/collections/poe/members> <http://www.w3.org/ns/ldp#hasMemberRelation> <http://pcdm.org/models#hasMember> .
+<info:fedora/collections/poe/members> <http://www.w3.org/ns/ldp#insertedContentRelation> <http://www.openarchives.org/ore/terms/proxyFor> .

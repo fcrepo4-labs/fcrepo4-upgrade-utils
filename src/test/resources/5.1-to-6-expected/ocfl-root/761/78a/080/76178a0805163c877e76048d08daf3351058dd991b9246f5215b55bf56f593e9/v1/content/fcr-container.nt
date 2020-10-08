@@ -1,0 +1,4 @@
+<info:fedora/indirect-container> <http://www.w3.org/ns/ldp#hasMemberRelation> <http://www.w3.org/ns/ldp#member> .
+<info:fedora/indirect-container> <http://www.w3.org/ns/ldp#insertedContentRelation> <http://www.w3.org/ns/ldp#MemberSubject> .
+<info:fedora/indirect-container> <http://www.w3.org/ns/ldp#membershipResource> <info:fedora/indirect-container> .
+<info:fedora/indirect-container> <http://purl.org/dc/elements/1.1/title> "indirect container" .

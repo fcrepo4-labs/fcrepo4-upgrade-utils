@@ -137,14 +137,22 @@ public class ResourceMigratorTest {
         assertResourcesSame(info);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void rejectDirectContainer() {
-        migrate(containerInfo("direct-container"));
+    @Test
+    public void migrateDirectContainer() {
+        final var info = containerInfo("direct-container");
+
+        migrateNoChildren(info);
+
+        assertResourcesSame(info);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void rejectIndirectContainer() {
-        migrate(containerInfo("indirect-container"));
+    @Test
+    public void migrateIndirectContainer() {
+        final var info = containerInfo("indirect-container");
+
+        migrateNoChildren(info);
+
+        assertResourcesSame(info);
     }
 
     @Test

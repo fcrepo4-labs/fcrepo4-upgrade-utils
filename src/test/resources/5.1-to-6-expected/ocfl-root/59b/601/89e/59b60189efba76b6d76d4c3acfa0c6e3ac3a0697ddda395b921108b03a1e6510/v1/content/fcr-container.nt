@@ -1,0 +1,2 @@
+<info:fedora/collections/poe/members/ravenProxy> <http://www.openarchives.org/ore/terms/proxyFor> <http://localhost:8080/fcrepo/rest/objects/raven/> .
+<info:fedora/collections/poe/members/ravenProxy> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://pcdm.org/models#Object> .

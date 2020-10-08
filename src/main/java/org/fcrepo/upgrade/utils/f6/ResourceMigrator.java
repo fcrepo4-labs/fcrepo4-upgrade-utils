@@ -174,12 +174,6 @@ public class ResourceMigrator {
                                          final Instant timestamp) {
         final var interactionModel = identifyInteractionModel(info.getFullId(), rdf);
 
-        if (interactionModel != InteractionModel.BASIC_CONTAINER) {
-            throw new UnsupportedOperationException(String.format(
-                    "Resource %s could not be migrated." +
-                            " Migrating direct/indirect containers is not currently supported.", info.getFullId()));
-        }
-
         final var headers = createContainerHeaders(info, interactionModel, rdf);
 
         doInSession(info.getFullId(), session -> {
