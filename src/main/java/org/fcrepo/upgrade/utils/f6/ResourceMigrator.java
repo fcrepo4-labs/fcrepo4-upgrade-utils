@@ -239,11 +239,12 @@ public class ResourceMigrator {
 
     private void migrateExternalBinary(final ResourceInfo info) {
         final var rdf = readRdf(info.getInnerDirectory().resolve(rdfFile(FCR_METADATA)));
-        final var headers = createBinaryHeaders(info, rdf);
+        final var headersBuilder = ResourceHeaders.builder(createBinaryHeaders(info, rdf));
 
         final var externalResource = parseExternalResource(info);
-        headers.setExternalUrl(externalResource.location);
-        headers.setExternalHandling(externalResource.handling);
+        headersBuilder.withExternalUrl(externalResource.location)
+                .withExternalHandling(externalResource.handling);
+        final var headers = headersBuilder.build();
 
         final var descId = joinId(info.getFullId(), FCR_METADATA_ID);
         final var descHeaders = createBinaryDescHeaders(info.getFullId(), descId, rdf);
@@ -427,26 +428,28 @@ public class ResourceMigrator {
         }
     }
 
-    private ResourceHeaders createCommonHeaders(final String parentId,
+    private ResourceHeaders.Builder createCommonHeaders(final String parentId,
                                                 final String fullId,
                                                 final InteractionModel interactionModel,
                                                 final Model rdf) {
-        final var headers = new ResourceHeaders();
+        final var headers = ResourceHeaders.builder();
 
-        headers.setId(fullId);
-        headers.setParent(parentId);
-        headers.setInteractionModel(interactionModel.getUri());
-        headers.setArchivalGroup(false);
-        headers.setDeleted(false);
+        final var created = RdfUtil.getDateValue(RdfConstants.FEDORA_CREATED_DATE, rdf);
+        final var lastModified = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
 
-        headers.setCreatedBy(RdfUtil.getFirstValue(RdfConstants.FEDORA_CREATED_BY, rdf));
-        headers.setCreatedDate(RdfUtil.getDateValue(RdfConstants.FEDORA_CREATED_DATE, rdf));
-        headers.setLastModifiedBy(RdfUtil.getFirstValue(RdfConstants.FEDORA_LAST_MODIFIED_BY, rdf));
-        headers.setLastModifiedDate(RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf));
-        headers.setStateToken(calculateStateToken(headers.getLastModifiedDate()));
+        headers.withId(fullId)
+                .withParent(parentId)
+                .withInteractionModel(interactionModel.getUri())
+                .withArchivalGroup(false)
+                .withDeleted(false)
+                .withCreatedBy(RdfUtil.getFirstValue(RdfConstants.FEDORA_CREATED_BY, rdf))
+                .withCreatedDate(created)
+                .withLastModifiedBy(RdfUtil.getFirstValue(RdfConstants.FEDORA_LAST_MODIFIED_BY, rdf))
+                .withLastModifiedDate(lastModified)
+                .withStateToken(calculateStateToken(lastModified));
 
-        if (headers.getCreatedDate() == null) {
-            headers.setCreatedDate(headers.getLastModifiedDate());
+        if (created == null) {
+            headers.withCreatedDate(lastModified);
         }
 
         return headers;
@@ -457,31 +460,31 @@ public class ResourceMigrator {
                                                    final Model rdf) {
         final var headers = createCommonHeaders(info.getParentId(), info.getFullId(),
                 interactionModel, rdf);
-        headers.setObjectRoot(true);
-        return headers;
+        headers.withObjectRoot(true);
+        return headers.build();
     }
 
     private ResourceHeaders createBinaryDescHeaders(final String parentId, final String fullId, final Model rdf) {
         final var headers = createCommonHeaders(parentId, fullId, InteractionModel.NON_RDF_DESCRIPTION, rdf);
-        headers.setObjectRoot(false);
-        return headers;
+        headers.withObjectRoot(false);
+        return headers.build();
     }
 
     private ResourceHeaders createAclHeaders(final String parentId, final String fullId, final Model rdf) {
         final var headers = createCommonHeaders(parentId, fullId, InteractionModel.ACL, rdf);
-        headers.setObjectRoot(false);
-        return headers;
+        headers.withObjectRoot(false);
+        return headers.build();
     }
 
     private ResourceHeaders createBinaryHeaders(final ResourceInfo info, final Model rdf) {
         final var headers = createCommonHeaders(info.getParentId(), info.getFullId(),
                 InteractionModel.NON_RDF, rdf);
-        headers.setObjectRoot(true);
-        headers.setContentSize(Long.valueOf(RdfUtil.getFirstValue(RdfConstants.HAS_SIZE, rdf)));
-        headers.setDigests(RdfUtil.getUris(RdfConstants.HAS_MESSAGE_DIGEST, rdf));
-        headers.setFilename(RdfUtil.getFirstValue(RdfConstants.HAS_ORIGINAL_NAME, rdf));
-        headers.setMimeType(RdfUtil.getFirstValue(RdfConstants.EBUCORE_HAS_MIME_TYPE, rdf));
-        return headers;
+        headers.withObjectRoot(true)
+                .withContentSize(Long.valueOf(RdfUtil.getFirstValue(RdfConstants.HAS_SIZE, rdf)))
+                .withDigests(RdfUtil.getUris(RdfConstants.HAS_MESSAGE_DIGEST, rdf))
+                .withFilename(RdfUtil.getFirstValue(RdfConstants.HAS_ORIGINAL_NAME, rdf))
+                .withMimeType(RdfUtil.getFirstValue(RdfConstants.EBUCORE_HAS_MIME_TYPE, rdf));
+        return headers.build();
     }
 
     private Model readRdf(final Path path) {
