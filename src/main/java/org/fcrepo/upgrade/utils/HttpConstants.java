@@ -24,10 +24,12 @@ package org.fcrepo.upgrade.utils;
  */
 public class HttpConstants {
 
+
     private HttpConstants() {
     }
 
     public static final String CONTENT_TYPE_HEADER = "Content-Type";
     public static final String LOCATION_HEADER = "Location";
     public static final String CONTENT_LOCATION_HEADER = "Content-Location";
+    public static final String LINK_HEADER = "Link";
 }

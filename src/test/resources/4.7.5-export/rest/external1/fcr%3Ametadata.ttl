@@ -20,8 +20,8 @@
         premis:hasSize           "0"^^<http://www.w3.org/2001/XMLSchema#long> ;
         ebucore:hasMimeType      "message/external-body;access-type=URL;url=\"http://www.example.com/file.jpg\""^^<http://www.w3.org/2001/XMLSchema#string> ;
         fedora:createdBy         "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
-        fedora:created           "2019-08-05T21:56:17.134Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
-        fedora:lastModified      "2019-08-05T21:56:17.134Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        fedora:created           "2020-10-15T05:35:00.061Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        fedora:lastModified      "2020-10-15T05:35:00.061Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
         premis:hasMessageDigest  <urn:sha1:da39a3ee5e6b4b0d3255bfef95601890afd80709> ;
         ebucore:filename         ""^^<http://www.w3.org/2001/XMLSchema#string> ;
         rdf:type                 ldp:NonRDFSource ;

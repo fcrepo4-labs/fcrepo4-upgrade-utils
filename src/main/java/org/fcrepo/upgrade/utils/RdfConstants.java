@@ -46,7 +46,11 @@ public class RdfConstants {
     public static final String PREMIS_NS = "http://www.loc.gov/premis/rdf/v1#";
     public static final String EBUCORE_NS = "http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#";
 
-    public static final Resource LDP_NON_RDFSOURCE = ResourceFactory.createResource(LDP_NS + "NonRDFSource");
+    public static final Resource LDP_NON_RDF_SOURCE = ResourceFactory.createResource(LDP_NS + "NonRDFSource");
+    public static final Resource LDP_RDF_SOURCE = ResourceFactory.createResource(LDP_NS + "RDFSource");
+
+    public static final Resource NON_RDF_SOURCE_DESCRIPTION = ResourceFactory.createResource(FEDORA_NS +
+                                                                                            "NonRdfSourceDescription");
     public static final Resource LDP_CONTAINER = ResourceFactory.createResource(LDP_NS + "Container");
     public static final Resource LDP_DIRECT_CONTAINER = ResourceFactory.createResource(LDP_NS + "DirectContainer");
     public static final Resource LDP_INDIRECT_CONTAINER = ResourceFactory.createResource(LDP_NS + "IndirectContainer");
@@ -54,6 +58,10 @@ public class RdfConstants {
     public static final List<Resource> LDP_CONTAINER_TYPES = Arrays.asList(LDP_BASIC_CONTAINER,
                                                                            LDP_DIRECT_CONTAINER,
                                                                            LDP_INDIRECT_CONTAINER);
+
+    public static final Resource FEDORA_VERSION = ResourceFactory.createResource(FEDORA_NS + "Version");
+    public static final Resource MEMENTO = ResourceFactory.createResource(MEMENTO_NS + "Memento");
+
     public static final Property EBUCORE_HAS_MIME_TYPE =
         createProperty(EBUCORE_NS + "hasMimeType");
     public static final Property HAS_ORIGINAL_NAME =

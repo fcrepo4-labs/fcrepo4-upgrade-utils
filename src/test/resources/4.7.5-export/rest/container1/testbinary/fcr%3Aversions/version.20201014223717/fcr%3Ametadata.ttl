@@ -13,20 +13,18 @@
 @prefix foaf:  <http://xmlns.com/foaf/0.1/> .
 @prefix dc:  <http://purl.org/dc/elements/1.1/> .
 
-<http://localhost:8080/rest/container1/testbinary>
-        rdf:type                 fedora:Binary ;
-        rdf:type                 fedora:Resource ;
+<http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223717>
+        rdf:type                 fedora:Version ;
         fedora:lastModifiedBy    "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
-        premis:hasSize           "18580"^^<http://www.w3.org/2001/XMLSchema#long> ;
-        ebucore:hasMimeType      "image/jpeg"^^<http://www.w3.org/2001/XMLSchema#string> ;
+        premis:hasSize           "133194"^^<http://www.w3.org/2001/XMLSchema#long> ;
+        ebucore:hasMimeType      "image/png"^^<http://www.w3.org/2001/XMLSchema#string> ;
         fedora:createdBy         "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
         fedora:created           "2020-10-15T05:35:00.15Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
-        fedora:lastModified      "2020-10-15T05:38:46.418Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
-        premis:hasMessageDigest  <urn:sha1:d55236f8866da0a977e0c8f1ff4f714a127b877b> ;
-        ebucore:filename         "flowers.jpg"^^<http://www.w3.org/2001/XMLSchema#string> ;
+        fedora:lastModified      "2020-10-15T05:35:00.15Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        premis:hasMessageDigest  <urn:sha1:00e609b7b2c5533f6f4263cc69149be51bedaf14> ;
+        ebucore:filename         "02.png"^^<http://www.w3.org/2001/XMLSchema#string> ;
         rdf:type                 ldp:NonRDFSource ;
         fedora:writable          "true"^^<http://www.w3.org/2001/XMLSchema#boolean> ;
-        <http://www.iana.org/assignments/relation/describedby>  <http://localhost:8080/rest/container1/testbinary/fcr:metadata> ;
-        fedora:hasParent         <http://localhost:8080/rest/container1> ;
-        fedora:hasFixityService  <http://localhost:8080/rest/container1/testbinary/fcr:fixity> ;
-        fedora:hasVersions       <http://localhost:8080/rest/container1/testbinary/fcr:versions> .
+        <http://www.iana.org/assignments/relation/describedby>  <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223717/fcr:metadata> ;
+        fedora:hasParent         <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223717/fcr:metadata> ;
+        fedora:hasFixityService  <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223717/fcr:fixity> .

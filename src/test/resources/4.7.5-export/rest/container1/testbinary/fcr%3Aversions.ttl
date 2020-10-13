@@ -1,0 +1,28 @@
+@prefix premis:  <http://www.loc.gov/premis/rdf/v1#> .
+@prefix test:  <info:fedora/test/> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsi:  <http://www.w3.org/2001/XMLSchema-instance> .
+@prefix xmlns:  <http://www.w3.org/2000/xmlns/> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix xml:  <http://www.w3.org/XML/1998/namespace> .
+@prefix ebucore:  <http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+@prefix xs:  <http://www.w3.org/2001/XMLSchema> .
+@prefix fedoraconfig:  <http://fedora.info/definitions/v4/config#> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+@prefix dc:  <http://purl.org/dc/elements/1.1/> .
+
+<http://localhost:8080/rest/container1/testbinary>
+        fedora:hasVersion  <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223717> .
+
+<http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223717>
+        fedora:hasVersionLabel  "version.20201014223717"^^<http://www.w3.org/2001/XMLSchema#string> ;
+        fedora:created          "2020-10-15T05:37:17.293Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+
+<http://localhost:8080/rest/container1/testbinary>
+        fedora:hasVersion  <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223848> .
+
+<http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223848>
+        fedora:hasVersionLabel  "version.20201014223848"^^<http://www.w3.org/2001/XMLSchema#string> ;
+        fedora:created          "2020-10-15T05:38:48.615Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .

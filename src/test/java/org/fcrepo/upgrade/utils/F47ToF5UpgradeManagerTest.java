@@ -21,7 +21,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -31,6 +33,7 @@ import java.util.Map;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -65,17 +68,29 @@ public class F47ToF5UpgradeManagerTest {
         UpgradeManager upgradeManager = UpgradeManagerFactory.create(config);
         upgradeManager.start();
         //ensure all expected files exist
-        final String[] expectedFiles = new String[]{"rest.ttl",
-                                                    "rest.ttl.headers",
-                                                    "rest/external1",
-                                                    "rest/external1/fcr%3Ametadata.ttl",
-                                                    "rest/container1.ttl.headers",
-                                                    "rest/container1/testbinary.binary",
-                                                    "rest/container1/testbinary/fcr%3Ametadata.ttl",
-                                                    "rest/container1/testbinary.binary.headers",
-                                                    "rest/container1.ttl",
-                                                    "rest/external1.external.headers",
-                                                    "rest/external1.external"};
+        final String[] expectedFiles =
+            new String[]{"rest.ttl",
+                         "rest.ttl.headers",
+                         "rest/external1",
+                         "rest/external1/fcr%3Ametadata.ttl",
+                         "rest/container1.ttl",
+                         "rest/container1.ttl.headers",
+                         "rest/container1/fcr%3Aversions/20201015053947.ttl",
+                         "rest/container1/fcr%3Aversions/20201015053947.ttl.headers",
+                         "rest/container1/fcr%3Aversions/20201015053526.ttl",
+                         "rest/container1/fcr%3Aversions/20201015053526.ttl.headers",
+                         "rest/container1/testbinary.binary",
+                         "rest/container1/testbinary/fcr%3Ametadata.ttl",
+                         "rest/container1/testbinary.binary.headers",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053717.ttl",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053717.ttl.headers",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053848.ttl",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053848.ttl.headers",
+                         "rest/container1/testbinary/fcr%3Aversions/20201015053848.binary",
+                         "rest/container1/testbinary/fcr%3Aversions/20201015053848.binary.headers",
+                         "rest/container1/testbinary/fcr%3Aversions/20201015053717.binary",
+                         "rest/external1.external.headers",
+                         "rest/external1.external"};
 
         for (String f : expectedFiles) {
             assertTrue(f + " does not exist as expected", new File(output, f).exists());
@@ -94,6 +109,26 @@ public class F47ToF5UpgradeManagerTest {
             deserializeHeaders(new File(output, "rest/container1/testbinary.binary.headers"));
         assertTrue("binary does not contain NonRDFSource type in the link headers",
                    bheadders.get("Link").stream().anyMatch(x -> x.contains("NonRDFSource")));
+
+        for (String f : expectedFiles) {
+            final var file = new File(output, f);
+            if (f.contains("fcr%3Aversions")) {
+
+                if(f.endsWith(".headers")){
+                    final Map<String, List<String>> mHeaders =
+                        deserializeHeaders(file);
+                    assertTrue("Memento headers do not contain memento type link header",
+                               mHeaders.get("Link").stream().anyMatch(x -> x.contains("Memento")));
+                    assertTrue("Memento headers do not contain Memento-Datetime header",
+                               mHeaders.get("Memento-Datetime") != null);
+                } else if(f.contains("fcr:%3Ametadata")) {
+                   final var contents = IOUtils.toString(new FileInputStream(file), Charset.defaultCharset());
+                   assertTrue("Mementos should not contain links to other mementos",
+                              !contents.contains("fcr:versions/"));
+                }
+            }
+        }
+
 
     }
 

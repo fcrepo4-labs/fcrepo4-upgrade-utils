@@ -13,9 +13,8 @@
 @prefix foaf:  <http://xmlns.com/foaf/0.1/> .
 @prefix dc:  <http://purl.org/dc/elements/1.1/> .
 
-<http://localhost:8080/rest/container1/testbinary>
-        rdf:type                 fedora:Binary ;
-        rdf:type                 fedora:Resource ;
+<http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223848>
+        rdf:type                 fedora:Version ;
         fedora:lastModifiedBy    "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
         premis:hasSize           "18580"^^<http://www.w3.org/2001/XMLSchema#long> ;
         ebucore:hasMimeType      "image/jpeg"^^<http://www.w3.org/2001/XMLSchema#string> ;
@@ -26,7 +25,6 @@
         ebucore:filename         "flowers.jpg"^^<http://www.w3.org/2001/XMLSchema#string> ;
         rdf:type                 ldp:NonRDFSource ;
         fedora:writable          "true"^^<http://www.w3.org/2001/XMLSchema#boolean> ;
-        <http://www.iana.org/assignments/relation/describedby>  <http://localhost:8080/rest/container1/testbinary/fcr:metadata> ;
-        fedora:hasParent         <http://localhost:8080/rest/container1> ;
-        fedora:hasFixityService  <http://localhost:8080/rest/container1/testbinary/fcr:fixity> ;
-        fedora:hasVersions       <http://localhost:8080/rest/container1/testbinary/fcr:versions> .
+        <http://www.iana.org/assignments/relation/describedby>  <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223848/fcr:metadata> ;
+        fedora:hasParent         <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223848/fcr:metadata> ;
+        fedora:hasFixityService  <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223848/fcr:fixity> .

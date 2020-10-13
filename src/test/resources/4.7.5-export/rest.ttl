@@ -14,10 +14,13 @@
 @prefix dc:  <http://purl.org/dc/elements/1.1/> .
 
 <http://localhost:8080/rest/>
-        fedora:lastModified            "2019-08-05T21:56:17.128Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        rdf:type                       ldp:BasicContainer ;
+        rdf:type                       fedora:Container ;
+        rdf:type                       fedora:Resource ;
+        fedora:lastModifiedBy          "bypassAdmin"^^<http://www.w3.org/2001/XMLSchema#string> ;
+        fedora:lastModified            "2020-10-15T05:35:00.219Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
         rdf:type                       ldp:RDFSource ;
         rdf:type                       ldp:Container ;
-        rdf:type                       ldp:BasicContainer ;
         fedora:writable                "true"^^<http://www.w3.org/2001/XMLSchema#boolean> ;
         rdf:type                       fedora:RepositoryRoot ;
         rdf:type                       fedora:Resource ;
