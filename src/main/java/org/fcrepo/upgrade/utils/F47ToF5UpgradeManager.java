@@ -186,7 +186,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         }
 
         //loop through all the statements, modifying the model as necessary.
-        model.listStatements().toList().forEach(statement -> {
+        statements.forEach(statement -> {
             var currentStatement = statement;
 
             //replace subject and internal objects with original resource uri if versioned
