@@ -117,11 +117,14 @@ public class UpgradeUtilDriver {
             outputDir.mkdirs();
         } else {
             outputDir = new File(outputDirStr);
+            outputDir.mkdirs();
             if (!outputDir.exists()) {
-                printHelpAndExit(format("output directory %s does not exist.", outputDir.getAbsolutePath()),
+                printHelpAndExit(format("output directory %s could not be created.", outputDir.getAbsolutePath()),
                         configOptions);
             }
         }
+
+        logger.info("The output directory is set to {}", outputDir.getAbsolutePath());
 
         final var config = new Config();
         config.setSourceVersion(FedoraVersion.fromString(cmd.getOptionValue("s")));

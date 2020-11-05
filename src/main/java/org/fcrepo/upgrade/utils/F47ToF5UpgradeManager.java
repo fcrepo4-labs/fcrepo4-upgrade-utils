@@ -116,7 +116,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
         //skip versions container
         if (path.endsWith(FCR_VERSIONS_PATH_SEGMENT + TURTLE_EXTENSION)) {
-            LOGGER.info("version containers are not required for import.  Skipping {}...", path);
+            LOGGER.debug("version containers are not required for import.  Skipping {}...", path);
             return;
         }
 
@@ -144,6 +144,8 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
             if (newLocation.toString().endsWith(TURTLE_EXTENSION)) {
                 upgradeRdfAndCreateHeaders(isBinaryDescription, versionTimestamp, newLocation);
             }
+            LOGGER.info("Resource upgraded: {}", path);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -378,6 +380,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
     private void writeHeadersFile(final Map<String, List<String>> headers, final File file) throws IOException {
         final String json = new ObjectMapper().writeValueAsString(headers);
+        file.getParentFile().mkdirs();
         try (final FileWriter writer = new FileWriter(file)) {
             writer.write(json);
         }
