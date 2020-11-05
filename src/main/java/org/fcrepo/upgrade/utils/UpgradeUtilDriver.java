@@ -99,10 +99,25 @@ public class UpgradeUtilDriver {
             throw new RuntimeException("I am unreachable");
         }
 
+        logger.info("Command line parameters: ");
+        for(final var option : cmd.getOptions()) {
+            logger.info("    {}: {}", option.getLongOpt(), option.getValues());
+        }
+
+
         final File inputDir = new File(cmd.getOptionValue("i"));
 
         if (!inputDir.exists()) {
             printHelpAndExit(format("input directory %s does not exist.", inputDir.getAbsolutePath()), configOptions);
+        }
+
+        final var commandArgs = cmd.getArgs();
+
+        if(commandArgs.length > 0) {
+            final var errorMessage =
+                new StringBuilder(format("The following argument(s) were not expected: %s .", commandArgs));
+            errorMessage.append("  Please ensure all arguments are associated with a valid command-line flag.");
+            printHelpAndExit(errorMessage.toString(),options());
         }
 
         final String outputDirStr = cmd.getOptionValue("o");
@@ -124,7 +139,8 @@ public class UpgradeUtilDriver {
             }
         }
 
-        logger.info("The output directory is set to {}", outputDir.getAbsolutePath());
+        logger.info("input directory: {}", inputDir.getAbsolutePath());
+        logger.info("output directory: {}", outputDir.getAbsolutePath());
 
         final var config = new Config();
         config.setSourceVersion(FedoraVersion.fromString(cmd.getOptionValue("s")));
