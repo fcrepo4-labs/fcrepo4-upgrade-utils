@@ -42,7 +42,9 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -336,6 +338,10 @@ public class ResourceMigrator {
     private Map<String, ResourceInfo> listDirectChildren(final String rootParentId,
                                                          final String currentParentId,
                                                          final Path containerDir) {
+        if(!containerDir.toFile().exists()){
+            return Collections.EMPTY_MAP;
+        }
+
         try (final var children = Files.list(containerDir)) {
             return children.filter(Files::isRegularFile)
                     .map(f -> f.getFileName().toString())
@@ -371,8 +377,11 @@ public class ResourceMigrator {
      * @return list of ghost nodes
      */
     private List<Path> listGhostNodes(final Path containerDir, final Set<String> children) {
-        final var ghosts = new ArrayList<Path>();
+        if(!containerDir.toFile().exists()){
+            return Collections.EMPTY_LIST;
+        }
 
+        final var ghosts = new ArrayList<Path>();
         try (final var list = Files.list(containerDir)) {
             list.filter(Files::isDirectory)
                     .filter(f -> !f.getFileName().toString().startsWith(FCR))
