@@ -338,7 +338,7 @@ public class ResourceMigrator {
     private Map<String, ResourceInfo> listDirectChildren(final String rootParentId,
                                                          final String currentParentId,
                                                          final Path containerDir) {
-        if(!containerDir.toFile().exists()){
+        if (!containerDir.toFile().exists()) {
             return Collections.EMPTY_MAP;
         }
 
@@ -377,7 +377,7 @@ public class ResourceMigrator {
      * @return list of ghost nodes
      */
     private List<Path> listGhostNodes(final Path containerDir, final Set<String> children) {
-        if(!containerDir.toFile().exists()){
+        if (!containerDir.toFile().exists()) {
             return Collections.EMPTY_LIST;
         }
 
