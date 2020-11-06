@@ -142,7 +142,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
             LOGGER.debug("copy file {} to {}", path, newLocation);
             FileUtils.copyFile(path.toFile(), newLocation.toFile());
             if (newLocation.toString().endsWith(TURTLE_EXTENSION)) {
-                upgradeRdfAndCreateHeaders(isBinaryDescription, versionTimestamp, newLocation);
+                upgradeRdfAndCreateHeaders(versionTimestamp, newLocation);
             }
             LOGGER.info("Resource upgraded: {}", path);
 
@@ -151,8 +151,8 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         }
     }
 
-    private void upgradeRdfAndCreateHeaders(boolean isBinaryDescription, TemporalAccessor versionTimestamp,
-                                            Path newLocation)
+    private void upgradeRdfAndCreateHeaders(final TemporalAccessor versionTimestamp,
+                                            final Path newLocation)
         throws IOException {
         //parse the file
         final Model model = ModelFactory.createDefaultModel();
@@ -179,7 +179,6 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
         rdfTypes.retainAll(LDP_CONTAINER_TYPES);
         final var isConcreteContainerDefined = !rdfTypes.isEmpty();
-        // toList here because we may need to modify the model mid-iteration
 
         addTypeLinkHeader(metadataHeaders, LDP_RDF_SOURCE.getURI());
         if (isBinary) {
@@ -252,7 +251,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
             addTypeLinkHeader(binaryHeaders, MEMENTO.getURI());
         }
 
-        // While F5 assumes BasicContainer when no concrete container is not present in the RDF on import,
+        // While F5 assumes BasicContainer when no concrete container is present in the RDF on import,
         // the F5->F6 upgrade pathway requires its presence.  Thus I add it here for consistency.
         // As a note, when an F5 repository is exported the BasicContainer type triple will be present in
         // the exported RDF.
@@ -261,7 +260,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
             rewriteModel.set(true);
         }
 
-        // rewwrite only if the model as changed.
+        // rewrite only if the model has changed.
         if (rewriteModel.get()) {
             try {
                 RDFDataMgr.write(new FileOutputStream(newLocation.toFile()), model, Lang.TTL);
@@ -276,14 +275,13 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
         //write binary headers file
         if (isBinary) {
-            var binaryHeadersPrefix = newLocation.getParent().toAbsolutePath().toString();
+            String binaryHeadersPrefix;
             if (versionTimestamp != null) {
                 //locate the related binary prefix
-                final var fileName = newLocation.getFileName().toString();
-                final var filenameWithoutExtension = fileName.substring(0,fileName.length()-TURTLE_EXTENSION.length());
-                binaryHeadersPrefix = newLocation.getParent().getParent().getParent().toAbsolutePath() + File.separator +
-                                      FCR_VERSIONS_PATH_SEGMENT + File.separator + filenameWithoutExtension;
+                binaryHeadersPrefix = locateBinaryHeadersPrefixForVersionedBinary(newLocation);
             } else  {
+                //for unversioned binaries we want simply to translate from
+                // path/to/binary/fcr%3Ametadata.ttl to path/to/binary
                 binaryHeadersPrefix = newLocation.getParent().toAbsolutePath().toString();
             }
 
@@ -298,6 +296,18 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         LOGGER.debug("containerSubject={}", containerSubject);
     }
 
+    private String locateBinaryHeadersPrefixForVersionedBinary(final Path newLocation) {
+        //the idea here is translate a versioned metadata resource
+        //   from
+        //   path/to/binary/fcr%3Ametdata/fcr%3Aversions/20201105171804.ttl
+        //   to
+        //   path/to/binary/fcr%3Aversions/20201105171804
+        final var fileName = newLocation.getFileName().toString();
+        final var filenameWithoutExtension = fileName.substring(0,fileName.length()-TURTLE_EXTENSION.length());
+        return newLocation.getParent().getParent().getParent().toAbsolutePath() + File.separator +
+                              FCR_VERSIONS_PATH_SEGMENT + File.separator + filenameWithoutExtension;
+    }
+
     private Resource getOriginalResource(Resource resource) {
         return ResourceFactory.createResource(resource.getURI()
                                                       .replaceAll("/fcr:versions/[a-zA-Z0-9.]*", ""));
@@ -305,7 +315,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
     private void addTypeLinkHeader(Map<String, List<String>> headers, String typeUri) {
         final FcrepoLink link = FcrepoLink.fromUri(typeUri).rel(TYPE_RELATION).build();
-        headers.get("Link").add(link.toString());
+        headers.get(LINK_HEADER).add(link.toString());
     }
 
     private void addMementoDatetimeHeader(TemporalAccessor versionTimestamp, Map<String, List<String>> headers) {
