@@ -71,6 +71,18 @@ public class F5ToF6UpgradeManagerTest {
         assertMigration(Paths.get("src/test/resources/5.1-to-6-expected"));
     }
 
+    @Test
+    public void migrateExportFromAContext() {
+        config.setBaseUri("http://localhost:8080/fcrepo/rest/");
+        config.setInputDir(new File("src/test/resources/5.1-export-with-context"));
+
+        final var upgradeManager = UpgradeManagerFactory.create(config);
+
+        upgradeManager.start();
+
+        assertMigration(Paths.get("src/test/resources/5.1-to-6-expected-with-context"));
+    }
+
     private void assertMigration(final Path expected) {
         final var expectedRoot = expected.resolve("ocfl-root");
         final var actualRoot = out.resolve("ocfl-root");

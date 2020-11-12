@@ -1,0 +1,14 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+
+<http://localhost:8080/fcrepo/rest/>
+        fedora:lastModified            "2020-11-12T17:56:30.603Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        rdf:type                       ldp:RDFSource ;
+        rdf:type                       ldp:Container ;
+        rdf:type                       ldp:BasicContainer ;
+        rdf:type                       fedora:RepositoryRoot ;
+        rdf:type                       fedora:Resource ;
+        rdf:type                       fedora:Container ;
+        ldp:contains                   <http://localhost:8080/fcrepo/rest/box> ;
+        fedora:hasTransactionProvider  <http://localhost:8080/fcrepo/rest/fcr:tx> .
