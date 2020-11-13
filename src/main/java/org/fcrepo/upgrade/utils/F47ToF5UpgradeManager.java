@@ -56,6 +56,7 @@ import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.RDFNode;
@@ -303,7 +304,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         //   to
         //   path/to/binary/fcr%3Aversions/20201105171804
         final var fileName = newLocation.getFileName().toString();
-        final var filenameWithoutExtension = fileName.substring(0,fileName.length()-TURTLE_EXTENSION.length());
+        final var filenameWithoutExtension = FilenameUtils.getBaseName(fileName);
         return newLocation.getParent().getParent().getParent().toAbsolutePath() + File.separator +
                               FCR_VERSIONS_PATH_SEGMENT + File.separator + filenameWithoutExtension;
     }
