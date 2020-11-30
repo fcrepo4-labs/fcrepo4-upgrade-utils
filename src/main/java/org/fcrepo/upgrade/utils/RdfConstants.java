@@ -41,10 +41,14 @@ public class RdfConstants {
     }
 
     public static final String FEDORA_NS = "http://fedora.info/definitions/v4/repository#";
+    public static final String ACL_NS = "http://www.w3.org/ns/auth/acl#";
     public static final String LDP_NS = "http://www.w3.org/ns/ldp#";
     public static final String MEMENTO_NS = "http://mementoweb.org/ns#";
     public static final String PREMIS_NS = "http://www.loc.gov/premis/rdf/v1#";
     public static final String EBUCORE_NS = "http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#";
+
+    public static final Resource ACL = ResourceFactory.createResource( "http://fedora.info/definitions/v4/webac#Acl");
+    public static final Resource AUTHORIZATION = ResourceFactory.createResource(ACL_NS + "Authorization");
 
     public static final Resource LDP_NON_RDF_SOURCE = ResourceFactory.createResource(LDP_NS + "NonRDFSource");
     public static final Resource LDP_RDF_SOURCE = ResourceFactory.createResource(LDP_NS + "RDFSource");
@@ -58,7 +62,7 @@ public class RdfConstants {
     public static final List<Resource> LDP_CONTAINER_TYPES = Arrays.asList(LDP_BASIC_CONTAINER,
                                                                            LDP_DIRECT_CONTAINER,
                                                                            LDP_INDIRECT_CONTAINER);
-
+    public static final Resource LDP_CONTAINS = ResourceFactory.createResource(LDP_NS + "contains");
     public static final Resource FEDORA_VERSION = ResourceFactory.createResource(FEDORA_NS + "Version");
     public static final Resource MEMENTO = ResourceFactory.createResource(MEMENTO_NS + "Memento");
 
@@ -75,6 +79,11 @@ public class RdfConstants {
             createProperty(FEDORA_NS + "createdBy");
     public static final Property FEDORA_CREATED_DATE =
             createProperty(FEDORA_NS + "created");
+
+    public static final Property FEDORA_WEB_ACL =
+        createProperty( "http://fedora.info/definitions/v4/webac#Acl");
+
+    public static final Property ACCESS_CONTROL = createProperty(ACL_NS + "accessControl");
 
     public static final Property HAS_FIXITY_RESULT =
             createProperty(PREMIS_NS + "hasFixity");

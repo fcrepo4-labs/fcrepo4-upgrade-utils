@@ -17,16 +17,26 @@
  */
 package org.fcrepo.upgrade.utils;
 
+import static java.net.URI.create;
+import static org.apache.jena.rdf.model.ResourceFactory.createResource;
 import static org.fcrepo.upgrade.utils.HttpConstants.CONTENT_LOCATION_HEADER;
 import static org.fcrepo.upgrade.utils.HttpConstants.CONTENT_TYPE_HEADER;
 import static org.fcrepo.upgrade.utils.HttpConstants.LINK_HEADER;
 import static org.fcrepo.upgrade.utils.HttpConstants.LOCATION_HEADER;
+import static org.fcrepo.upgrade.utils.RdfConstants.ACCESS_CONTROL;
+import static org.fcrepo.upgrade.utils.RdfConstants.ACL;
+import static org.fcrepo.upgrade.utils.RdfConstants.ACL_NS;
+import static org.fcrepo.upgrade.utils.RdfConstants.AUTHORIZATION;
 import static org.fcrepo.upgrade.utils.RdfConstants.EBUCORE_HAS_MIME_TYPE;
+import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_CREATED_BY;
 import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_CREATED_DATE;
+import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_LAST_MODIFIED_BY;
+import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_LAST_MODIFIED_DATE;
 import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_VERSION;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_BASIC_CONTAINER;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_CONTAINER;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_CONTAINER_TYPES;
+import static org.fcrepo.upgrade.utils.RdfConstants.LDP_CONTAINS;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_NON_RDF_SOURCE;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_RDF_SOURCE;
 import static org.fcrepo.upgrade.utils.RdfConstants.MEMENTO;
@@ -44,11 +54,14 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -59,9 +72,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.vocabulary.RDF;
@@ -84,11 +97,11 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
     private static final String MEMENTO_DATETIME_HEADER = "Memento-Datetime";
     private static final String FCR_METADATA_PATH_SEGMENT = "fcr%3Ametadata";
     private static final String FCR_VERSIONS_PATH_SEGMENT = "fcr%3Aversions";
+    public static final String FCR_ACL_PATH_SEGMENT = "fcr%3Aacl";
     private static final String TYPE_RELATION = "type";
     private static final String TURTLE_EXTENSION = ".ttl";
     private static final String HEADERS_SUFFIX = ".headers";
     public static final String APPLICATION_OCTET_STREAM_MIMETYPE = "application/octet-stream";
-
     /**
      * Constructor
      *
@@ -122,7 +135,6 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         }
 
         final boolean isVersionedResource = path.toString().contains(FCR_VERSIONS_PATH_SEGMENT + File.separator);
-        final boolean isBinaryDescription = path.toString().contains(FCR_METADATA_PATH_SEGMENT);
         final Path inputPath = this.config.getInputDir().toPath();
         final Path relativePath = inputPath.relativize(path);
         final Path relativeNewLocation;
@@ -175,8 +187,14 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         final var rdfTypes = statements.stream().filter(s -> s.getPredicate().equals(RDF.type))
                                        .map(s -> s.getObject().asResource()).collect(Collectors.toList());
         final var isBinary = rdfTypes.contains(LDP_NON_RDF_SOURCE);
-
         final var isContainer = rdfTypes.contains(LDP_CONTAINER);
+
+        //skip if ACL or Authorization: these files are upgraded through a separate code path
+        // see convertAcl() below.
+        if (rdfTypes.contains(ACL) || rdfTypes.contains(AUTHORIZATION)) {
+            newLocation.toFile().delete();
+            return;
+        }
 
         rdfTypes.retainAll(LDP_CONTAINER_TYPES);
         final var isConcreteContainerDefined = !rdfTypes.isEmpty();
@@ -242,6 +260,17 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
                     }
                 }
                 binaryHeaders.put(CONTENT_TYPE_HEADER, Collections.singletonList(mimetype));
+            } else if (statement.getPredicate().equals(ACCESS_CONTROL)) {
+                //remove the current statement across both past versions and latest version
+                model.remove(currentStatement);
+                rewriteModel.set(true);
+
+                //on the latest version
+                if(versionTimestamp == null) {
+                    //convert the acl
+                    convertAcl(newLocation, currentStatement.getSubject().getURI(),
+                               currentStatement.getObject().asResource().getURI());
+                }
             }
         });
 
@@ -297,6 +326,78 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         LOGGER.debug("containerSubject={}", containerSubject);
     }
 
+    private void convertAcl(final Path convertedProtectedResourceLocation, String protectedResource, String aclUri) {
+        //locate the exported acl rdf on disk based on aclURI
+        final var relativeAclPath = create(aclUri).getPath();
+        final var aclDirectory = Path.of(this.config.getInputDir().toPath().toString(), relativeAclPath.toString());
+        final var aclRdfFilePath = aclDirectory.toString() + TURTLE_EXTENSION;
+        final var newAclResource = ResourceFactory.createResource(protectedResource + "/fcr:acl");
+        final var aclModel = createModelFromFile(Path.of(aclRdfFilePath));
+        final var aclTriples = new ArrayList<Statement>();
+        final var allowablePredicates = Arrays.asList(RDF.type, FEDORA_CREATED_DATE, FEDORA_LAST_MODIFIED_DATE, FEDORA_CREATED_BY, FEDORA_LAST_MODIFIED_BY);
+        aclModel.listStatements().toList().stream().filter(x->allowablePredicates.contains(x.getPredicate()))
+                .forEach(x -> {
+            final var obj = x.getObject();
+            final var predicate = x.getPredicate();
+            if ( !(predicate.equals(RDF.type) && obj.isResource() && obj.equals(ACL))) {
+                aclTriples.add(aclModel.createStatement(newAclResource, x.getPredicate(), x.getObject()));
+            }
+        });
+
+        final var newAclFilePath = Path
+            .of(removeExtension(convertedProtectedResourceLocation.toString()),
+                FCR_ACL_PATH_SEGMENT + TURTLE_EXTENSION);
+
+        //determine the location of new acl
+        final var authorizations = new LinkedHashMap<String, List<Statement>>();
+        var authIndex = new AtomicInteger(0);
+        try (final Stream<Path> list = Files.walk(aclDirectory)) {
+            list.filter(Files::isRegularFile).forEach(authFile -> {
+                 final var model = createModelFromFile(authFile);
+                final var authName = "auth" + authIndex.get();
+                final var subject = createResource(newAclResource + "#" + authName);
+                final var isAuthorization = new AtomicBoolean(false);
+                final var authTriples = new ArrayList<Statement>();
+                model.listStatements().toList().stream().filter(x-> {
+                    //filter only rdf type Authorization and acl namespace  predicates
+                    return (x.getPredicate().equals(RDF.type) && x.getObject().asResource().equals(AUTHORIZATION)) ||
+                           x.getPredicate().toString().startsWith(ACL_NS);
+                }).forEach(x->{
+                    var object = x.getObject();
+                    if (x.getPredicate().equals(RDF.type) && x.getObject().asResource().equals(AUTHORIZATION)) {
+                        isAuthorization.set(true);
+                    }
+                    authTriples.add(model.createStatement(subject, x.getPredicate(), object));
+                });
+
+                authIndex.incrementAndGet();
+                if (isAuthorization.get()) {
+                    authorizations.put(authName, authTriples);
+                }
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        //create new model
+        final var newModel = ModelFactory.createDefaultModel();
+        //add acl level triples
+        aclTriples.forEach(x -> newModel.add(x));
+        //add all authorizations to a single model
+        for (String key : authorizations.keySet()) {
+            authorizations.get(key).forEach(x -> {
+                newModel.add(x);
+            });
+        }
+
+        //save to new acl to file
+        try (final FileOutputStream os = new FileOutputStream(newAclFilePath.toFile())) {
+            RDFDataMgr.write(os, newModel, Lang.TTL);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private String locateBinaryHeadersPrefixForVersionedBinary(final Path newLocation) {
         //the idea here is translate a versioned metadata resource
         //   from
@@ -310,7 +411,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
     }
 
     private Resource getOriginalResource(Resource resource) {
-        return ResourceFactory.createResource(resource.getURI()
+        return createResource(resource.getURI()
                                                       .replaceAll("/fcr:versions/[a-zA-Z0-9.]*", ""));
     }
 
@@ -340,35 +441,37 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         var metadataPath = path;
         if (!path.toString().endsWith(TURTLE_EXTENSION)) {
             final var metadataPathStr = metadataPath.toString();
-            final var index = metadataPathStr.lastIndexOf(".");
-            final var newMetadataPathStr = metadataPathStr
-                                               .substring(0,
-                                                          index) + File.separator + FCR_METADATA_PATH_SEGMENT + TURTLE_EXTENSION;
+            final var newMetadataPathStr = removeExtension(metadataPathStr) + File.separator + FCR_METADATA_PATH_SEGMENT + TURTLE_EXTENSION;
             metadataPath = Path.of(newMetadataPathStr);
         }
 
         //resolve the subject associated with the resource
-        final Model model = ModelFactory.createDefaultModel();
-        try (final FileInputStream is = new FileInputStream(metadataPath.toFile())) {
-            RDFDataMgr.read(model, is, Lang.TTL);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+        final Model model = createModelFromFile(metadataPath);
         final var subject = model.listSubjects().nextResource();
 
         //resolve the versions file
         final var versionsContainer = resolveVersionsContainer(path);
         //read the versions container in order to resolve the version timestamp
-        final Model versionsContainerModel = ModelFactory.createDefaultModel();
-        try (final FileInputStream is = new FileInputStream(versionsContainer.toFile())) {
-            RDFDataMgr.read(versionsContainerModel, is, Lang.TTL);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+        final Model versionsContainerModel = createModelFromFile(versionsContainer);
         final var iso8601Timestamp = versionsContainerModel.listObjectsOfProperty(subject, FEDORA_CREATED_DATE)
                                                            .next().asLiteral().getString();
         //create memento id based on RFC 8601 timestamp
         return ISO_DATE_TIME_FORMATTER.parse(iso8601Timestamp);
+    }
+
+    private String removeExtension(String path) {
+        final var index = path.lastIndexOf(".");
+        return path.substring(0, index);
+    }
+
+    private Model createModelFromFile(final Path path) {
+        final Model model = ModelFactory.createDefaultModel();
+        try (final FileInputStream is = new FileInputStream(path.toFile())) {
+            RDFDataMgr.read(model, is, Lang.TTL);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+        return model;
     }
 
     private Path resolveNewVersionedResourceLocation(final Path path, final TemporalAccessor mementoTimestamp) {
