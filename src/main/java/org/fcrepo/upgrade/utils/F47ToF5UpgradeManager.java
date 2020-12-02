@@ -36,7 +36,6 @@ import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_VERSION;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_BASIC_CONTAINER;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_CONTAINER;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_CONTAINER_TYPES;
-import static org.fcrepo.upgrade.utils.RdfConstants.LDP_CONTAINS;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_NON_RDF_SOURCE;
 import static org.fcrepo.upgrade.utils.RdfConstants.LDP_RDF_SOURCE;
 import static org.fcrepo.upgrade.utils.RdfConstants.MEMENTO;
@@ -97,7 +96,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
     private static final String MEMENTO_DATETIME_HEADER = "Memento-Datetime";
     private static final String FCR_METADATA_PATH_SEGMENT = "fcr%3Ametadata";
     private static final String FCR_VERSIONS_PATH_SEGMENT = "fcr%3Aversions";
-    public static final String FCR_ACL_PATH_SEGMENT = "fcr%3Aacl";
+    private static final String FCR_ACL_PATH_SEGMENT = "fcr%3Aacl";
     private static final String TYPE_RELATION = "type";
     private static final String TURTLE_EXTENSION = ".ttl";
     private static final String HEADERS_SUFFIX = ".headers";
@@ -329,24 +328,26 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
     private void convertAcl(final Path convertedProtectedResourceLocation, String protectedResource, String aclUri) {
         //locate the exported acl rdf on disk based on aclURI
         final var relativeAclPath = create(aclUri).getPath();
-        final var aclDirectory = Path.of(this.config.getInputDir().toPath().toString(), relativeAclPath.toString());
-        final var aclRdfFilePath = aclDirectory.toString() + TURTLE_EXTENSION;
+        final var aclDirectory = Path.of(this.config.getInputDir().toPath().toString(), relativeAclPath);
+        final var aclRdfFilePath = aclDirectory + TURTLE_EXTENSION;
         final var newAclResource = ResourceFactory.createResource(protectedResource + "/fcr:acl");
         final var aclModel = createModelFromFile(Path.of(aclRdfFilePath));
         final var aclTriples = new ArrayList<Statement>();
-        final var allowablePredicates = Arrays.asList(RDF.type, FEDORA_CREATED_DATE, FEDORA_LAST_MODIFIED_DATE, FEDORA_CREATED_BY, FEDORA_LAST_MODIFIED_BY);
+        final var allowablePredicates = Arrays.asList(RDF.type, FEDORA_CREATED_DATE, FEDORA_LAST_MODIFIED_DATE,
+                                                      FEDORA_CREATED_BY, FEDORA_LAST_MODIFIED_BY);
         aclModel.listStatements().toList().stream().filter(x->allowablePredicates.contains(x.getPredicate()))
                 .forEach(x -> {
             final var obj = x.getObject();
             final var predicate = x.getPredicate();
             if ( !(predicate.equals(RDF.type) && obj.isResource() && obj.equals(ACL))) {
-                aclTriples.add(aclModel.createStatement(newAclResource, x.getPredicate(), x.getObject()));
+                aclTriples.add(aclModel.createStatement(newAclResource, predicate, obj));
             }
         });
 
         final var newAclFilePath = Path
-            .of(removeExtension(convertedProtectedResourceLocation.toString()),
+            .of(FilenameUtils.removeExtension(convertedProtectedResourceLocation.toString()),
                 FCR_ACL_PATH_SEGMENT + TURTLE_EXTENSION);
+        newAclFilePath.getParent().toFile().mkdirs();
 
         //determine the location of new acl
         final var authorizations = new LinkedHashMap<String, List<Statement>>();
@@ -412,7 +413,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
     private Resource getOriginalResource(Resource resource) {
         return createResource(resource.getURI()
-                                                      .replaceAll("/fcr:versions/[a-zA-Z0-9.]*", ""));
+                                      .replaceAll("/fcr:versions/[a-zA-Z0-9.]*", ""));
     }
 
     private void addTypeLinkHeader(Map<String, List<String>> headers, String typeUri) {
@@ -441,7 +442,8 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         var metadataPath = path;
         if (!path.toString().endsWith(TURTLE_EXTENSION)) {
             final var metadataPathStr = metadataPath.toString();
-            final var newMetadataPathStr = removeExtension(metadataPathStr) + File.separator + FCR_METADATA_PATH_SEGMENT + TURTLE_EXTENSION;
+            final var newMetadataPathStr = FilenameUtils.removeExtension(metadataPathStr) + File.separator +
+                                           FCR_METADATA_PATH_SEGMENT + TURTLE_EXTENSION;
             metadataPath = Path.of(newMetadataPathStr);
         }
 
@@ -457,11 +459,6 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
                                                            .next().asLiteral().getString();
         //create memento id based on RFC 8601 timestamp
         return ISO_DATE_TIME_FORMATTER.parse(iso8601Timestamp);
-    }
-
-    private String removeExtension(String path) {
-        final var index = path.lastIndexOf(".");
-        return path.substring(0, index);
     }
 
     private Model createModelFromFile(final Path path) {

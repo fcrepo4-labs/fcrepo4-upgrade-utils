@@ -164,10 +164,12 @@ public class F47ToF5UpgradeManagerTest {
                    authSubjects.contains("http://localhost:8080/rest/container1/fcr:acl#auth1"));
 
         final var lastModifiedStatement = model.listStatements().toList().stream()
-                                               .filter(x -> x.getPredicate().equals(FEDORA_LAST_MODIFIED_DATE)).findFirst().get();
+                                               .filter(x -> x.getPredicate().equals(FEDORA_LAST_MODIFIED_DATE))
+                                               .findFirst().get();
         assertTrue("There should be a last modified date", lastModifiedStatement != null);
         assertEquals("The subject should be be the acl: ",
-                     "http://localhost:8080/rest/container1/fcr:acl", lastModifiedStatement.getSubject().getURI());
+                     "http://localhost:8080/rest/container1/fcr:acl",
+                     lastModifiedStatement.getSubject().getURI());
     }
 
     private Map<String, List<String>> deserializeHeaders(final File headerFile) throws IOException {

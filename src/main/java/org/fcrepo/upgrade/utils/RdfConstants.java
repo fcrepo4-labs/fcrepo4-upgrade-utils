@@ -62,7 +62,6 @@ public class RdfConstants {
     public static final List<Resource> LDP_CONTAINER_TYPES = Arrays.asList(LDP_BASIC_CONTAINER,
                                                                            LDP_DIRECT_CONTAINER,
                                                                            LDP_INDIRECT_CONTAINER);
-    public static final Resource LDP_CONTAINS = ResourceFactory.createResource(LDP_NS + "contains");
     public static final Resource FEDORA_VERSION = ResourceFactory.createResource(FEDORA_NS + "Version");
     public static final Resource MEMENTO = ResourceFactory.createResource(MEMENTO_NS + "Memento");
 
@@ -79,9 +78,6 @@ public class RdfConstants {
             createProperty(FEDORA_NS + "createdBy");
     public static final Property FEDORA_CREATED_DATE =
             createProperty(FEDORA_NS + "created");
-
-    public static final Property FEDORA_WEB_ACL =
-        createProperty( "http://fedora.info/definitions/v4/webac#Acl");
 
     public static final Property ACCESS_CONTROL = createProperty(ACL_NS + "accessControl");
 
