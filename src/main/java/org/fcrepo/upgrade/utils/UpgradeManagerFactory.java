@@ -74,7 +74,7 @@ public class UpgradeManagerFactory {
     @VisibleForTesting
     public static OcflObjectSessionFactory createOcflObjectSessionFactory(final Config config) {
         try {
-            final var output = config.getOutputDir().toPath();
+            final var output = config.getOutputDir().toPath().resolve("data");
             final var ocflRoot = Files.createDirectories(output.resolve("ocfl-root"));
             final var work = Files.createDirectories(output.resolve("ocfl-temp"));
             final var staging = Files.createDirectories(output.resolve("staging"));

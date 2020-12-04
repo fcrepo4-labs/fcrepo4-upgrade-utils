@@ -84,8 +84,8 @@ public class F5ToF6UpgradeManagerTest {
     }
 
     private void assertMigration(final Path expected) {
-        final var expectedRoot = expected.resolve("ocfl-root");
-        final var actualRoot = out.resolve("ocfl-root");
+        final var expectedRoot = expected.resolve("data").resolve("ocfl-root");
+        final var actualRoot = out.resolve("data").resolve("ocfl-root");
 
         final var expectedFiles = listAllFiles(expectedRoot);
         final var actualFiles = listAllFiles(actualRoot);
