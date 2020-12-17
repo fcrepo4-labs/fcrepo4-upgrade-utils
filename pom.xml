@@ -8,7 +8,7 @@
   <parent>
     <groupId>org.fcrepo</groupId>
     <artifactId>fcrepo-parent</artifactId>
-    <version>6.0.0-alpha-2</version>
+    <version>6.0.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>fcrepo-upgrade-utils</artifactId>
@@ -48,7 +48,7 @@
     <junit.version>4.13.1</junit.version>
     <cargo.version>1.4.12</cargo.version>
     <fcrepo-java-client.version>0.4.0</fcrepo-java-client.version>
-    <fcrepo.storage.ocfl.version>6.0.0-alpha-2</fcrepo.storage.ocfl.version>
+    <fcrepo.storage.ocfl.version>6.0.0-SNAPSHOT</fcrepo.storage.ocfl.version>
     <commons-lang.version>3.11</commons-lang.version>
     <commons-collections.version>4.4</commons-collections.version>
 
