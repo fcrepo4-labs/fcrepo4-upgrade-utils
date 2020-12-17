@@ -3,7 +3,7 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.fcrepo</groupId>
-  <version>6.0.0-alpha-2</version>
+  <version>6.0.0-SNAPSHOT</version>
 
   <parent>
     <groupId>org.fcrepo</groupId>
@@ -244,8 +244,4 @@
     <system>GitHub</system>
     <url>https://github.com/fcrepo-exts/fcrepo-upgrade-utils/issues</url>
   </issueManagement>
-
-  <scm>
-    <tag>fcrepo-upgrade-utils-6.0.0-alpha-2</tag>
-  </scm>
 </project>
