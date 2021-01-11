@@ -101,9 +101,11 @@ public class F5ToF6UpgradeManagerTest {
     }
 
     private Set<String> listAllFiles(final Path root) {
+        final var storageExtensions = root.resolve("extensions");
         try (final var files = Files.walk(root)) {
             return files.filter(Files::isRegularFile)
                     .filter(f -> !f.getParent().equals(root))
+                    .filter(f -> !f.getParent().getParent().equals(storageExtensions))
                     .map(f -> root.relativize(f).toString())
                     .collect(Collectors.toSet());
         } catch (IOException e) {
