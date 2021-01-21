@@ -442,9 +442,15 @@ public class ResourceMigrator {
                                                 final InteractionModel interactionModel,
                                                 final Model rdf) {
         final var headers = ResourceHeaders.builder();
-
-        final var created = RdfUtil.getDateValue(RdfConstants.FEDORA_CREATED_DATE, rdf);
-        final var lastModified = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+        final var now = Instant.now();
+        var created = RdfUtil.getDateValue(RdfConstants.FEDORA_CREATED_DATE, rdf);
+        if (created == null) {
+            created = now;
+        }
+        var lastModified = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+        if (lastModified == null || lastModified.isBefore(created)) {
+            lastModified = now;
+        }
 
         headers.withId(fullId)
                 .withHeadersVersion(ResourceHeadersVersion.V1_0)

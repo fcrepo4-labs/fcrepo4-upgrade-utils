@@ -3,6 +3,7 @@
 @prefix ldp:  <http://www.w3.org/ns/ldp#> .
 
 <http://localhost:8080/rest/>
+        fedora:created                 "2020-09-11T18:34:19.255Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
         fedora:lastModified            "2020-09-11T18:34:19.255Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
         rdf:type                       ldp:RDFSource ;
         rdf:type                       ldp:Container ;
