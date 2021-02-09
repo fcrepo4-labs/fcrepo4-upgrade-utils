@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import org.apache.jena.riot.Lang;
 
 import java.io.File;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -33,6 +34,7 @@ public class Config {
     public static final String DEFAULT_USER = "fedoraAdmin";
     public static final String DEFAULT_USER_ADDRESS = "info:fedora/fedoraAdmin";
     public static final String DEFAULT_DIGEST_ALGORITHM = "sha512";
+    public static final List<String> VALID_DIGEST_ALGORITHMS = List.of(DEFAULT_DIGEST_ALGORITHM, "sha256");
     public static final Lang DEFAULT_SRC_RDF_LANG = Lang.TTL;
     public static final int DEFAULT_THREADS = Runtime.getRuntime().availableProcessors();
 
@@ -45,7 +47,7 @@ public class Config {
     private Lang srcRdfLang = DEFAULT_SRC_RDF_LANG;
     private String baseUri;
     private Integer threads = DEFAULT_THREADS;
-    private String digestAlgorithm = DEFAULT_DIGEST_ALGORITHM;
+    private String digestAlgorithm;
     private String fedoraUser = DEFAULT_USER;
     private String fedoraUserAddress = DEFAULT_USER_ADDRESS;
     private boolean forceWindowsMode = false;
@@ -157,6 +159,9 @@ public class Config {
      * @return the digest algorithm to use in OCFL, sha512 or sha256
      */
     public String getDigestAlgorithm() {
+        if (this.digestAlgorithm == null) {
+            return DEFAULT_DIGEST_ALGORITHM;
+        }
         return digestAlgorithm;
     }
 
@@ -165,11 +170,7 @@ public class Config {
      * @param digestAlgorithm sha512 or sha256
      */
     public void setDigestAlgorithm(final String digestAlgorithm) {
-        if (digestAlgorithm == null) {
-            this.digestAlgorithm = DEFAULT_DIGEST_ALGORITHM;
-        } else {
-            this.digestAlgorithm = digestAlgorithm;
-        }
+        this.digestAlgorithm = digestAlgorithm;
     }
 
     /**

@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static org.fcrepo.upgrade.utils.Config.VALID_DIGEST_ALGORITHMS;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -157,7 +158,14 @@ public class UpgradeUtilDriver {
         }
 
         config.setBaseUri(cmd.getOptionValue("base-uri"));
-        config.setDigestAlgorithm(cmd.getOptionValue("digest-algorithm"));
+        if (cmd.hasOption("digest-algorithm")) {
+            final var algo = cmd.getOptionValue("digest-algorithm");
+            if (!VALID_DIGEST_ALGORITHMS.contains(algo)) {
+                printHelpAndExit(format("invalid digest algorithm (%s) provided, must be one of %s",
+                        algo, String.join(", ", VALID_DIGEST_ALGORITHMS)), configOptions);
+            }
+            config.setDigestAlgorithm(cmd.getOptionValue("digest-algorithm"));
+        }
         config.setFedoraUser(cmd.getOptionValue("migration-user"));
         config.setFedoraUserAddress(cmd.getOptionValue("migration-user-address"));
 
@@ -262,14 +270,14 @@ public class UpgradeUtilDriver {
         return configOptions;
     }
 
-    private Object join(Collection<FedoraVersion> versions) {
-        return versions.stream().map(x -> x.getStringValue()).collect(Collectors.joining(","));
+    private Object join(final Collection<FedoraVersion> versions) {
+        return versions.stream().map(FedoraVersion::getStringValue).collect(Collectors.joining(","));
     }
 
     private static void printHelpAndExit(final String errorMessage, final Options options) {
         final HelpFormatter formatter = new HelpFormatter();
         System.err.println(errorMessage);
-        formatter.printHelp("fcepo-upgrade-util", options);
+        formatter.printHelp("java -jar fcrepo-upgrade-util-<version>.jar", options);
         System.exit(1);
     }
 
