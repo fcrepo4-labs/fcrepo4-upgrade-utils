@@ -157,7 +157,10 @@ public class UpgradeUtilDriver {
             config.setThreads(Integer.valueOf(cmd.getOptionValue("threads")));
         }
 
-        config.setBaseUri(cmd.getOptionValue("base-uri"));
+        if (config.getTargetVersion().equals(FedoraVersion.V_6)) {
+            //base URI only used when migrating to F6
+            config.setBaseUri(cmd.getOptionValue("base-uri"));
+        }
         if (cmd.hasOption("digest-algorithm")) {
             final var algo = cmd.getOptionValue("digest-algorithm");
             if (!VALID_DIGEST_ALGORITHMS.contains(algo)) {
