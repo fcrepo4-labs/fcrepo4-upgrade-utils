@@ -18,12 +18,9 @@
 
 package org.fcrepo.upgrade.utils;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,11 +28,16 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * @author pwinckles
@@ -81,6 +83,33 @@ public class F5ToF6UpgradeManagerTest {
         upgradeManager.start();
 
         assertMigration(Paths.get("src/test/resources/5.1-to-6-expected-with-context"));
+    }
+
+    @Test
+    public void migrateExportWithMissingTimestamps() {
+        config.setInputDir(new File("src/test/resources/5.1-export-missing-timestamps"));
+        final var upgradeManager = UpgradeManagerFactory.create(config);
+        upgradeManager.start();
+        final var ocflRepository = UpgradeManagerFactory.createOcflObjectSessionFactory(config);
+        final var session = ocflRepository.newSession("info:fedora");
+        final var resourceHeaders = session.streamResourceHeaders().findFirst().orElse(null);
+        final var created = resourceHeaders.getCreatedDate();
+        final var lastUpdated = resourceHeaders.getLastModifiedDate();
+        assertEquals("The root resource's create and last modified should be equal",
+                     created, lastUpdated);
+        checkInstantNotOlderThan(created, 3000);
+        final var session2 = ocflRepository.newSession("info:fedora/simple-container");
+        var resourceHeaders2 = session2.streamResourceHeaders().findFirst().orElse(null);
+        final var created2 = resourceHeaders2.getCreatedDate();
+        final var lastUpdated2 = resourceHeaders2.getLastModifiedDate();
+        assertTrue("The last updated date should be greater than the created date",
+                   created2.toEpochMilli() < lastUpdated2.toEpochMilli());
+        checkInstantNotOlderThan(lastUpdated2, 3000);
+    }
+
+    private void checkInstantNotOlderThan(Instant created, int ms) {
+        assertTrue("the timestamp was created in the last " + ms + " milliseconds ",
+                   Instant.now().toEpochMilli()-created.toEpochMilli() < ms);
     }
 
     private void assertMigration(final Path expected) {

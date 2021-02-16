@@ -18,19 +18,10 @@
 
 package org.fcrepo.upgrade.utils.f6;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.vocabulary.RDF;
-import org.fcrepo.storage.ocfl.InteractionModel;
-import org.fcrepo.storage.ocfl.OcflObjectSession;
-import org.fcrepo.storage.ocfl.OcflObjectSessionFactory;
-import org.fcrepo.storage.ocfl.ResourceHeaders;
-import org.fcrepo.storage.ocfl.ResourceHeadersVersion;
-import org.fcrepo.upgrade.utils.Config;
-import org.fcrepo.upgrade.utils.RdfConstants;
-import org.slf4j.Logger;
+import static java.time.ZoneOffset.UTC;
+import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_CREATED_DATE;
+import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_LAST_MODIFIED_DATE;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,8 +44,19 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static java.time.ZoneOffset.UTC;
-import static org.slf4j.LoggerFactory.getLogger;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.vocabulary.RDF;
+import org.fcrepo.storage.ocfl.InteractionModel;
+import org.fcrepo.storage.ocfl.OcflObjectSession;
+import org.fcrepo.storage.ocfl.OcflObjectSessionFactory;
+import org.fcrepo.storage.ocfl.ResourceHeaders;
+import org.fcrepo.storage.ocfl.ResourceHeadersVersion;
+import org.fcrepo.upgrade.utils.Config;
+import org.fcrepo.upgrade.utils.RdfConstants;
+import org.slf4j.Logger;
 
 /**
  * Migrates a resource to F6.
@@ -160,8 +162,12 @@ public class ResourceMigrator {
         }
 
         final var rdf = readRdf(info.getOuterDirectory().resolve(rdfFile(info.getNameEncoded())));
-        final var currentUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
-
+        var currentUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+        if(currentUpdate == null) {
+            currentUpdate = Instant.now();
+            LOGGER.warn("Last modified date is not set in RDF in {}: using current time ({})",
+                        info.getFullId(), currentUpdate);
+        }
         // only migrate the state if it's different from the most recent memento
         if (lastVersionUpdate == null || !lastVersionUpdate.equals(currentUpdate)) {
             migrateContainerVersion(info, containerDir, rdf, currentUpdate);
@@ -443,12 +449,20 @@ public class ResourceMigrator {
                                                 final Model rdf) {
         final var headers = ResourceHeaders.builder();
         final var now = Instant.now();
-        var created = RdfUtil.getDateValue(RdfConstants.FEDORA_CREATED_DATE, rdf);
+        var created = RdfUtil.getDateValue(FEDORA_CREATED_DATE, rdf);
         if (created == null) {
             created = now;
+            LOGGER.warn("The {} property is not defined for {}: ", FEDORA_CREATED_DATE, fullId);
         }
-        var lastModified = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+        var lastModified = RdfUtil.getDateValue(FEDORA_LAST_MODIFIED_DATE, rdf);
         if (lastModified == null || lastModified.isBefore(created)) {
+            if(lastModified == null) {
+                LOGGER.warn("The {} property is not defined for {}: ", FEDORA_LAST_MODIFIED_DATE, fullId);
+            }else {
+                LOGGER.warn("The value of the {} property ({}) precedes the created date ({}) for {}:  Setting the " +
+                            "last modified date to the value of the create date.", FEDORA_LAST_MODIFIED_DATE,
+                            lastModified, created, fullId);
+            }
             lastModified = now;
         }
 
