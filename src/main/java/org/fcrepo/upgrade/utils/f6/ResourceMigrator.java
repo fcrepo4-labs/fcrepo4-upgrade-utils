@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Property;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.vocabulary.RDF;
 import org.fcrepo.storage.ocfl.InteractionModel;
@@ -154,7 +155,7 @@ public class ResourceMigrator {
             for (final var version : versions) {
                 LOGGER.info("Migrating {}/fcr:versions/{}", info.getFullId(), version);
                 final var rdf = readRdf(containerDir.resolve(FCR_VERSIONS).resolve(rdfFile(version)));
-                lastVersionUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
+                lastVersionUpdate = RdfUtil.getDateValue(FEDORA_LAST_MODIFIED_DATE, rdf);
                 final var mementoInstant = parseMemento(version);
 
                 migrateContainerVersion(info, containerDir, rdf, mementoInstant);
@@ -162,12 +163,8 @@ public class ResourceMigrator {
         }
 
         final var rdf = readRdf(info.getOuterDirectory().resolve(rdfFile(info.getNameEncoded())));
-        var currentUpdate = RdfUtil.getDateValue(RdfConstants.FEDORA_LAST_MODIFIED_DATE, rdf);
-        if(currentUpdate == null) {
-            currentUpdate = Instant.now();
-            LOGGER.warn("Last modified date is not set in RDF in {}: using current time ({})",
-                        info.getFullId(), currentUpdate);
-        }
+        final var currentUpdate = getInstantPropertyFromRdf(info.getFullId(), FEDORA_LAST_MODIFIED_DATE, rdf,
+                                                            Instant.now());
         // only migrate the state if it's different from the most recent memento
         if (lastVersionUpdate == null || !lastVersionUpdate.equals(currentUpdate)) {
             migrateContainerVersion(info, containerDir, rdf, currentUpdate);
@@ -449,16 +446,10 @@ public class ResourceMigrator {
                                                 final Model rdf) {
         final var headers = ResourceHeaders.builder();
         final var now = Instant.now();
-        var created = RdfUtil.getDateValue(FEDORA_CREATED_DATE, rdf);
-        if (created == null) {
-            created = now;
-            LOGGER.warn("The {} property is not defined for {}: ", FEDORA_CREATED_DATE, fullId);
-        }
-        var lastModified = RdfUtil.getDateValue(FEDORA_LAST_MODIFIED_DATE, rdf);
+        final var created = getInstantPropertyFromRdf(fullId, FEDORA_CREATED_DATE, rdf, now);
+        var lastModified = getInstantPropertyFromRdf(fullId, FEDORA_LAST_MODIFIED_DATE, rdf, null);
         if (lastModified == null || lastModified.isBefore(created)) {
-            if(lastModified == null) {
-                LOGGER.warn("The {} property is not defined for {}: ", FEDORA_LAST_MODIFIED_DATE, fullId);
-            }else {
+            if(lastModified != null) {
                 LOGGER.warn("The value of the {} property ({}) precedes the created date ({}) for {}:  Setting the " +
                             "last modified date to the value of the create date.", FEDORA_LAST_MODIFIED_DATE,
                             lastModified, created, fullId);
@@ -484,6 +475,16 @@ public class ResourceMigrator {
         }
 
         return headers;
+    }
+
+    private Instant getInstantPropertyFromRdf(String fullId, final Property property, Model rdf, Instant defaultValue) {
+        var value = RdfUtil.getDateValue(property, rdf);
+        if (value == null) {
+            LOGGER.warn("The {} property is not defined for {}:  -> returning defaultValue: {}", property, fullId,
+                        defaultValue);
+            value = defaultValue;
+        }
+        return value;
     }
 
     private ResourceHeaders createContainerHeaders(final ResourceInfo info,
