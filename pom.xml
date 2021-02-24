@@ -3,12 +3,12 @@
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.fcrepo</groupId>
-  <version>6.0.0-beta-1</version>
+  <version>6.0.0-SNAPSHOT</version>
 
   <parent>
     <groupId>org.fcrepo</groupId>
     <artifactId>fcrepo-parent</artifactId>
-    <version>6.0.0-beta-1</version>
+    <version>6.0.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>fcrepo-upgrade-utils</artifactId>
@@ -59,7 +59,7 @@
     <dependency>
       <groupId>org.fcrepo</groupId>
       <artifactId>fcrepo-storage-ocfl</artifactId>
-      <version>6.0.0-beta-1</version>
+      <version>6.0.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -244,8 +244,4 @@
     <system>GitHub</system>
     <url>https://github.com/fcrepo-exts/fcrepo-upgrade-utils/issues</url>
   </issueManagement>
-
-  <scm>
-    <tag>fcrepo-upgrade-utils-6.0.0-beta-1</tag>
-  </scm>
 </project>
