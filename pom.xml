@@ -2,8 +2,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.fcrepo</groupId>
-  <version>6.0.0-SNAPSHOT</version>
 
   <parent>
     <groupId>org.fcrepo</groupId>
@@ -11,6 +9,8 @@
     <version>6.0.0-SNAPSHOT</version>
   </parent>
 
+  <groupId>org.fcrepo</groupId>
+  <version>6.0.0-SNAPSHOT</version>
   <artifactId>fcrepo-upgrade-utils</artifactId>
   <name>Fedora Repository Utilities</name>
   <description>The Fedora Commons repository upgrade utilities: Provides tools for maintaining the Fedora Commons
@@ -54,12 +54,18 @@
 
   </properties>
 
+  <scm>
+    <connection>scm:git:git://github.com/fcrepo-exts/${project_name}.git</connection>
+    <developerConnection>scm:git:git@github.com:fcrepo-exts/${project_name}.git</developerConnection>
+    <url>https://github.com/fcrepo-exts/${project_name}</url>
+    <tag>HEAD</tag>
+  </scm>
 
   <dependencies>
     <dependency>
       <groupId>org.fcrepo</groupId>
       <artifactId>fcrepo-storage-ocfl</artifactId>
-      <version>6.0.0-SNAPSHOT</version>
+      <version>${fcrepo.storage.ocfl.version}</version>
     </dependency>
 
     <dependency>
