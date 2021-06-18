@@ -1,4 +1,4 @@
-fcrepo-upgrade-utils [![Build Status](https://travis-ci.com/fcrepo-exts/fcrepo-upgrade-utils.svg?branch=master)](https://travis-ci.com/fcrepo-exts/fcrepo-upgrade-utils)
+fcrepo-upgrade-utils [![Build Status](https://github.com/fcrepo-exts/fcrepo-upgrade-utils/workflows/Build/badge.svg)](https://github.com/fcrepo-exts/fcrepo-upgrade-utils/actions)
 ==================
 
 Utility for upgrading the [Fedora Commons repository](http://github.com/fcrepo/fcrepo).
