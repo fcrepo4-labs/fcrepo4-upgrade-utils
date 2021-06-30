@@ -10,7 +10,7 @@
   </parent>
 
   <groupId>org.fcrepo</groupId>
-  <version>6.0.0-RC-2-SNAPSHOT</version>
+  <version>6.0.0</version>
   <artifactId>fcrepo-upgrade-utils</artifactId>
   <name>Fedora Repository Utilities</name>
   <description>The Fedora Commons repository upgrade utilities: Provides tools for maintaining the Fedora Commons
@@ -58,7 +58,7 @@
     <connection>scm:git:git://github.com/fcrepo-exts/${project_name}.git</connection>
     <developerConnection>scm:git:git@github.com:fcrepo-exts/${project_name}.git</developerConnection>
     <url>https://github.com/fcrepo-exts/${project_name}</url>
-    <tag>HEAD</tag>
+    <tag>fcrepo-upgrade-utils-6.0.0</tag>
   </scm>
 
   <dependencies>
