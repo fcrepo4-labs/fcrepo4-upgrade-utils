@@ -51,7 +51,8 @@
     <fcrepo.storage.ocfl.version>6.0.0</fcrepo.storage.ocfl.version>
     <commons-lang.version>3.11</commons-lang.version>
     <commons-collections.version>4.4</commons-collections.version>
-
+    <ocfl-java.version>1.1.0</ocfl-java.version>
+    <httpclient.version>4.5.13</httpclient.version>
   </properties>
 
   <scm>
@@ -66,6 +67,11 @@
       <groupId>org.fcrepo</groupId>
       <artifactId>fcrepo-storage-ocfl</artifactId>
       <version>${fcrepo.storage.ocfl.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>edu.wisc.library.ocfl</groupId>
+      <artifactId>ocfl-java-aws</artifactId>
+      <version>${ocfl-java.version}</version>
     </dependency>
 
     <dependency>
@@ -118,6 +124,12 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${jackson.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>${httpclient.version}</version>
     </dependency>
 
     <dependency>

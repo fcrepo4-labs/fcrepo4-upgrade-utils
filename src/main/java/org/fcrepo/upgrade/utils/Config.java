@@ -52,6 +52,16 @@ public class Config {
     private String fedoraUserAddress = DEFAULT_USER_ADDRESS;
     private boolean forceWindowsMode = false;
 
+    // S3 Options
+    private boolean writeToS3;
+    private String s3Region;
+    private String s3Endpoint;
+    private boolean s3PathStyleAccess;
+    private String s3AccessKey;
+    private String s3SecretKey;
+    private String s3Bucket;
+    private String s3Prefix;
+
     /**
      * Set the version of the source to be transformed.
      *
@@ -248,6 +258,118 @@ public class Config {
         this.forceWindowsMode = forceWindowsMode;
     }
 
+    /**
+     * @return true if should write migrated resources to S3
+     */
+    public boolean isWriteToS3() {
+        return writeToS3;
+    }
+
+    /**
+     * @param writeToS3 true if should write migrated resources to S3
+     */
+    public void setWriteToS3(final boolean writeToS3) {
+        this.writeToS3 = writeToS3;
+    }
+
+    /**
+     * @return the aws region or null
+     */
+    public String getS3Region() {
+        return s3Region;
+    }
+
+    /**
+     * @param s3Region aws region
+     */
+    public void setS3Region(final String s3Region) {
+        this.s3Region = s3Region;
+    }
+
+    /**
+     * @return s3 endpoint url or null
+     */
+    public String getS3Endpoint() {
+        return s3Endpoint;
+    }
+
+    /**
+     * @param s3Endpoint s3 endpoint
+     */
+    public void setS3Endpoint(final String s3Endpoint) {
+        this.s3Endpoint = s3Endpoint;
+    }
+
+    /**
+     * @return true if path style access should be used
+     */
+    public boolean isS3PathStyleAccess() {
+        return s3PathStyleAccess;
+    }
+
+    /**
+     * @param s3PathStyleAccess true if path style access should be used
+     */
+    public void setS3PathStyleAccess(final boolean s3PathStyleAccess) {
+        this.s3PathStyleAccess = s3PathStyleAccess;
+    }
+
+    /**
+     * @return aws access key
+     */
+    public String getS3AccessKey() {
+        return s3AccessKey;
+    }
+
+    /**
+     * @param s3AccessKey aws access key
+     */
+    public void setS3AccessKey(final String s3AccessKey) {
+        this.s3AccessKey = s3AccessKey;
+    }
+
+    /**
+     * @return aws secret key
+     */
+    public String getS3SecretKey() {
+        return s3SecretKey;
+    }
+
+    /**
+     * @param s3SecretKey aws secret key
+     */
+    public void setS3SecretKey(final String s3SecretKey) {
+        this.s3SecretKey = s3SecretKey;
+    }
+
+    /**
+     * @return s3 bucket or null
+     */
+    public String getS3Bucket() {
+        return s3Bucket;
+    }
+
+    /**
+     * @param s3Bucket s3 bucket
+     */
+    public void setS3Bucket(final String s3Bucket) {
+        this.s3Bucket = s3Bucket;
+    }
+
+    /**
+     * @return s3 prefix repo is located in or null
+     */
+    public String getS3Prefix() {
+        return s3Prefix;
+    }
+
+    /**
+     * @param s3Prefix s3 prefix repo is located in
+     */
+    public void setS3Prefix(final String s3Prefix) {
+        this.s3Prefix = s3Prefix;
+    }
+
     @Override
     public String toString() {
         return "Config{" +
@@ -261,6 +383,13 @@ public class Config {
                 ", digestAlgorithm='" + digestAlgorithm + '\'' +
                 ", fedoraUser='" + fedoraUser + '\'' +
                 ", fedoraUserAddress='" + fedoraUserAddress + '\'' +
+                ", forceWindowsMode=" + forceWindowsMode +
+                ", writeToS3=" + writeToS3 +
+                ", s3Region='" + s3Region + '\'' +
+                ", s3Endpoint='" + s3Endpoint + '\'' +
+                ", s3PathStyleAccess=" + s3PathStyleAccess +
+                ", s3Bucket=" + s3Bucket +
+                ", s3Prefix=" + s3Prefix +
                 '}';
     }
 
