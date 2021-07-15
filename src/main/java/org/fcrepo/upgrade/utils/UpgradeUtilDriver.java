@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.riot.RDFLanguages;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collection;
@@ -181,6 +182,10 @@ public class UpgradeUtilDriver {
         config.setS3SecretKey(cmd.getOptionValue("s3-secret-key"));
         config.setS3Bucket(cmd.getOptionValue("s3-bucket"));
         config.setS3Prefix(cmd.getOptionValue("s3-prefix"));
+
+        if (cmd.getOptionValue('R') != null) {
+            config.setResourceInfoFile(Paths.get(cmd.getOptionValue('R')));
+        }
 
         if (config.getTargetVersion() == FedoraVersion.V_6) {
             if (config.getBaseUri() == null) {
@@ -339,6 +344,13 @@ public class UpgradeUtilDriver {
                 .longOpt("s3-secret-key")
                 .hasArg(true)
                 .desc("The AWS secret key, optionally use when writing to S3")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder("R")
+                .longOpt("resource-info-file")
+                .hasArg(true)
+                .desc("The path the file that contains a list of resources to be processed")
                 .required(false)
                 .build());
 

@@ -20,9 +20,6 @@ package org.fcrepo.upgrade.utils.f6;
 
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -36,42 +33,45 @@ public class MigrateResourceTask implements Runnable {
 
     private final MigrationTaskManager taskManager;
     private final ResourceMigrator resourceMigrator;
+    private final ResourceInfoLogger infoLogger;
     private final ResourceInfo info;
 
     /**
      * @param taskManager the task manager that is coordinating migration tasks
      * @param resourceMigrator the object responsible for performing the migration
+     * @param infoLogger the logger to use to record failed migrations
      * @param info the resource to be migrated
      */
     public MigrateResourceTask(final MigrationTaskManager taskManager,
                                final ResourceMigrator resourceMigrator,
+                               final ResourceInfoLogger infoLogger,
                                final ResourceInfo info) {
         this.taskManager = taskManager;
         this.resourceMigrator = resourceMigrator;
+        this.infoLogger = infoLogger;
         this.info = info;
     }
 
     @Override
     public void run() {
-        List<ResourceInfo> children = new ArrayList<>();
-
         try {
-            children = resourceMigrator.migrate(info);
-            // TODO Failures could be logged to a file for reprocessing at a later date
+            final var children = resourceMigrator.migrate(info);
+
+            for (final var child : children) {
+                try {
+                    taskManager.submit(child);
+                } catch (RuntimeException e) {
+                    LOGGER.warn("Failed to queue {} for migration", child.getFullId());
+                    infoLogger.log(child);
+                }
+            }
         } catch (UnsupportedOperationException e) {
             // This is thrown when a resource is encountered that is not currently handled
             LOGGER.error(e.getMessage());
+            infoLogger.log(info);
         } catch (RuntimeException e) {
             LOGGER.error("Failed to process {}", info, e);
-        }
-
-        for (final var child : children) {
-            try {
-                taskManager.submit(child);
-            } catch (RuntimeException e) {
-                // TODO log to file for reprocessing
-                LOGGER.warn("Failed to queue {} for migration", child.getFullId());
-            }
+            infoLogger.log(info);
         }
     }
 

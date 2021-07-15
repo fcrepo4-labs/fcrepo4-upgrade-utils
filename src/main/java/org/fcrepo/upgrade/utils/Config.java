@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 import org.apache.jena.riot.Lang;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 
@@ -51,6 +52,7 @@ public class Config {
     private String fedoraUser = DEFAULT_USER;
     private String fedoraUserAddress = DEFAULT_USER_ADDRESS;
     private boolean forceWindowsMode = false;
+    private Path resourceInfoFile;
 
     // S3 Options
     private boolean writeToS3;
@@ -370,6 +372,20 @@ public class Config {
         this.s3Prefix = s3Prefix;
     }
 
+    /**
+     * @return path to the resource info file or null
+     */
+    public Path getResourceInfoFile() {
+        return resourceInfoFile;
+    }
+
+    /**
+     * @param resourceInfoFile path to the resource info file
+     */
+    public void setResourceInfoFile(Path resourceInfoFile) {
+        this.resourceInfoFile = resourceInfoFile;
+    }
+
     @Override
     public String toString() {
         return "Config{" +
@@ -390,6 +406,7 @@ public class Config {
                 ", s3PathStyleAccess=" + s3PathStyleAccess +
                 ", s3Bucket=" + s3Bucket +
                 ", s3Prefix=" + s3Prefix +
+                ", resourceInfoFile=" + resourceInfoFile +
                 '}';
     }
 
