@@ -24,6 +24,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.riot.RDFLanguages;
 
 import java.io.File;
@@ -172,10 +173,23 @@ public class UpgradeUtilDriver {
         config.setFedoraUser(cmd.getOptionValue("migration-user"));
         config.setFedoraUserAddress(cmd.getOptionValue("migration-user-address"));
 
+        config.setWriteToS3(cmd.hasOption("write-to-s3"));
+        config.setS3Region(cmd.getOptionValue("s3-region"));
+        config.setS3Endpoint(cmd.getOptionValue("s3-endpoint"));
+        config.setS3PathStyleAccess(cmd.hasOption("s3-path-style-access"));
+        config.setS3AccessKey(cmd.getOptionValue("s3-access-key"));
+        config.setS3SecretKey(cmd.getOptionValue("s3-secret-key"));
+        config.setS3Bucket(cmd.getOptionValue("s3-bucket"));
+        config.setS3Prefix(cmd.getOptionValue("s3-prefix"));
+
         if (config.getTargetVersion() == FedoraVersion.V_6) {
             if (config.getBaseUri() == null) {
                 printHelpAndExit("base-uri must be specified when migrating to Fedora 6", configOptions);
             }
+        }
+
+        if (config.isWriteToS3() && StringUtils.isBlank(config.getS3Bucket())) {
+            printHelpAndExit("s3-bucket must be specified when writing to S3", configOptions);
         }
 
         return config;
@@ -267,6 +281,64 @@ public class UpgradeUtilDriver {
                 .hasArg(true)
                 .desc("The address of the user OCFL versions are attributed to. Default: "
                         + Config.DEFAULT_USER_ADDRESS)
+                .required(false)
+                .build());
+
+        // S3 options
+
+        configOptions.addOption(Option.builder()
+                .longOpt("write-to-s3")
+                .hasArg(false)
+                .desc("Enables writing migrated Fedora 6 data to S3 rather than the local filesystem")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder()
+                .longOpt("s3-bucket")
+                .hasArg(true)
+                .desc("The S3 bucket to write to, required when writing to S3")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder()
+                .longOpt("s3-prefix")
+                .hasArg(true)
+                .desc("The S3 prefix to locate the OCFL repo in, optionally use when writing to S3")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder()
+                .longOpt("s3-region")
+                .hasArg(true)
+                .desc("The AWS region, optionally use when writing to S3")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder()
+                .longOpt("s3-endpoint")
+                .hasArg(true)
+                .desc("The AWS endpoint URL, optionally use when writing to S3")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder()
+                .longOpt("s3-path-style-access")
+                .hasArg(false)
+                .desc("The S3 access style, optionally use when writing to S3")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder()
+                .longOpt("s3-access-key")
+                .hasArg(true)
+                .desc("The AWS access key, optionally use when writing to S3")
+                .required(false)
+                .build());
+
+        configOptions.addOption(Option.builder()
+                .longOpt("s3-secret-key")
+                .hasArg(true)
+                .desc("The AWS secret key, optionally use when writing to S3")
                 .required(false)
                 .build());
 

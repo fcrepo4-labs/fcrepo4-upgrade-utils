@@ -25,10 +25,14 @@ import com.google.common.annotations.VisibleForTesting;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
+import edu.wisc.library.ocfl.core.storage.OcflStorage;
+import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
 import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.fcrepo.storage.ocfl.CommitType;
 import org.fcrepo.storage.ocfl.DefaultOcflObjectSessionFactory;
@@ -36,9 +40,14 @@ import org.fcrepo.storage.ocfl.OcflObjectSessionFactory;
 import org.fcrepo.storage.ocfl.cache.CaffeineCache;
 import org.fcrepo.upgrade.utils.f6.MigrationTaskManager;
 import org.fcrepo.upgrade.utils.f6.ResourceMigrator;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -118,14 +127,51 @@ public class UpgradeManagerFactory {
 
         final var digestAlgorithm = DigestAlgorithm.fromOcflName(config.getDigestAlgorithm());
 
+        final OcflStorage storage;
+
+        if (config.isWriteToS3()) {
+            storage = CloudOcflStorage.builder()
+                    .cloudClient(OcflS3Client.builder()
+                            .s3Client(s3Client(config))
+                            .bucket(config.getS3Bucket())
+                            .repoPrefix(config.getS3Prefix())
+                            .build())
+                    .build();
+        } else {
+            storage = FileSystemOcflStorage.builder().repositoryRoot(storageRoot).build();
+        }
+
         return new OcflRepositoryBuilder()
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .ocflConfig(new OcflConfig()
                         .setDefaultDigestAlgorithm(digestAlgorithm))
                 .logicalPathMapper(logicalPathMapper)
-                .storage((FileSystemOcflStorage.builder().repositoryRoot(storageRoot).build()))
+                .storage(storage)
                 .workDir(workDir)
                 .buildMutable();
+    }
+
+    private static S3Client s3Client(final Config config) {
+        final var builder = S3Client.builder();
+
+        if (StringUtils.isNotBlank(config.getS3Region())) {
+            builder.region(Region.of(config.getS3Region()));
+        }
+
+        if (StringUtils.isNotBlank(config.getS3Endpoint())) {
+            builder.endpointOverride(URI.create(config.getS3Endpoint()));
+        }
+
+        if (config.isS3PathStyleAccess()) {
+            builder.serviceConfiguration(c -> c.pathStyleAccessEnabled(true));
+        }
+
+        if (StringUtils.isNoneBlank(config.getS3AccessKey(), config.getS3SecretKey())) {
+            builder.credentialsProvider(StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(config.getS3AccessKey(), config.getS3SecretKey())));
+        }
+
+        return builder.build();
     }
 
 }
