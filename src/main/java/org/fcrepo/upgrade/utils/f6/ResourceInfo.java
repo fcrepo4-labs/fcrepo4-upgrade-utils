@@ -200,13 +200,14 @@ public class ResourceInfo {
         return Objects.equals(parentId, that.parentId)
                 && Objects.equals(fullId, that.fullId)
                 && Objects.equals(nameEncoded, that.nameEncoded)
-                && Objects.equals(outerDirectory, that.outerDirectory)
-                && Objects.equals(innerDirectory, that.innerDirectory)
+                && Objects.equals(outerDirectory.toAbsolutePath(), that.outerDirectory.toAbsolutePath())
+                && Objects.equals(innerDirectory.toAbsolutePath(), that.innerDirectory.toAbsolutePath())
                 && type == that.type;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(parentId, fullId, nameEncoded, outerDirectory, innerDirectory, type);
+        return Objects.hash(parentId, fullId, nameEncoded,
+                outerDirectory.toAbsolutePath(), innerDirectory.toAbsolutePath(), type);
     }
 }
