@@ -68,7 +68,7 @@ public class MigrationTaskManagerTest {
         defaultInfo = ResourceInfo.container(parent, join(parent, "child"), Paths.get("/"), "child");
         logPath = Paths.get("target/remaining.log");
         if (Files.exists(logPath)) {
-            Files.write(logPath, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
+            Files.write(logPath, new byte[0], StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.SYNC);
         }
     }
 
