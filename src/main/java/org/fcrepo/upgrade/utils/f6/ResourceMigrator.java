@@ -118,17 +118,28 @@ public class ResourceMigrator {
         LOGGER.debug("Resource info: {}", info);
 
         try {
-            switch (info.getType()) {
-                case BINARY:
-                    migrateBinary(info);
-                    return new ArrayList<>();
-                case EXTERNAL_BINARY:
-                    migrateExternalBinary(info);
-                    return new ArrayList<>();
-                case CONTAINER:
-                    return migrateContainer(info);
-                default:
-                    throw new IllegalStateException("Unexpected resource type");
+            if (!containsResource(info.getFullId())) {
+                switch (info.getType()) {
+                    case BINARY:
+                        migrateBinary(info);
+                        break;
+                    case EXTERNAL_BINARY:
+                        migrateExternalBinary(info);
+                        break;
+                    case CONTAINER:
+                        migrateContainer(info);
+                        break;
+                    default:
+                        throw new IllegalStateException("Unexpected resource type");
+                }
+            } else {
+                LOGGER.info("Skipping {} because it has already been migrated", info.getFullId());
+            }
+
+            if (info.getType() == ResourceInfo.Type.CONTAINER) {
+                return listAllChildren(info.getFullId(), info.getFullId(), info.getInnerDirectory());
+            } else {
+                return Collections.emptyList();
             }
         } catch (RuntimeException e) {
             LOGGER.info("Failed to migration resource {}. Rolling back...", info.getFullId());
@@ -144,7 +155,7 @@ public class ResourceMigrator {
         objectSessionFactory.close();
     }
 
-    private List<ResourceInfo> migrateContainer(final ResourceInfo info) {
+    private void migrateContainer(final ResourceInfo info) {
         final var containerDir = info.getInnerDirectory();
 
         Instant lastVersionUpdate = null;
@@ -169,8 +180,6 @@ public class ResourceMigrator {
         if (lastVersionUpdate == null || !lastVersionUpdate.equals(currentUpdate)) {
             migrateContainerVersion(info, containerDir, rdf, currentUpdate);
         }
-
-        return listAllChildren(info.getFullId(), info.getFullId(), containerDir);
     }
 
     private void migrateContainerVersion(final ResourceInfo info,
@@ -303,6 +312,12 @@ public class ResourceMigrator {
         }
     }
 
+    private boolean containsResource(final String fullId) {
+        try (final var session = objectSessionFactory.newSession(fullId)) {
+            return session.containsResource(fullId);
+        }
+    }
+
     /**
      * Lists all of the children of a container. This is complicated by the fact that a container can contain ghost
      * nodes between it and its children. This method will navigate ghost nodes down to the next concrete children.
@@ -342,7 +357,7 @@ public class ResourceMigrator {
                                                          final String currentParentId,
                                                          final Path containerDir) {
         if (!containerDir.toFile().exists()) {
-            return Collections.EMPTY_MAP;
+            return Collections.emptyMap();
         }
 
         try (final var children = Files.list(containerDir)) {
@@ -381,7 +396,7 @@ public class ResourceMigrator {
      */
     private List<Path> listGhostNodes(final Path containerDir, final Set<String> children) {
         if (!containerDir.toFile().exists()) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         final var ghosts = new ArrayList<Path>();
