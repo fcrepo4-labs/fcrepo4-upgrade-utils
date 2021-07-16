@@ -97,6 +97,16 @@ public class ResourceMigratorTest {
     }
 
     @Test
+    public void migratingResourceTwiceShouldDoNothing() {
+        final var info = binaryInfo("simple-binary");
+
+        migrateNoChildren(info);
+        migrateNoChildren(info);
+
+        assertResourcesSame(info);
+    }
+
+    @Test
     public void migrateExternalBinaryProxied() {
         final var info = externalBinaryInfo("external-proxied");
 
@@ -127,6 +137,21 @@ public class ResourceMigratorTest {
     public void migrateBasicContainerWithChildren() {
         final var info = containerInfo("container-with-children");
 
+        final var children = migrate(info);
+
+        assertEquals(2, children.size());
+
+        assertChildInfo(info, "binary-child", ResourceInfo.Type.BINARY, children.get(0));
+        assertChildInfo(info, "container-child", ResourceInfo.Type.CONTAINER, children.get(1));
+
+        assertResourcesSame(info);
+    }
+
+    @Test
+    public void migrateBasicContainerWithChildrenTwiceShouldDoNothingButReturnChildren() {
+        final var info = containerInfo("container-with-children");
+
+        migrate(info);
         final var children = migrate(info);
 
         assertEquals(2, children.size());
