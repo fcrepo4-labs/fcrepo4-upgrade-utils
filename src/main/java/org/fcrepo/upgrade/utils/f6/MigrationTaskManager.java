@@ -20,7 +20,15 @@ package org.fcrepo.upgrade.utils.f6;
 
 import org.slf4j.Logger;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -36,20 +44,46 @@ public class MigrationTaskManager {
     private static final Logger LOGGER = getLogger(MigrationTaskManager.class);
 
     private final ExecutorService executorService;
+    private final BlockingQueue<Runnable> workQueue;
     private final ResourceMigrator resourceMigrator;
     private final AtomicLong count;
     private final Object lock;
+    private final ResourceInfoLogger infoLogger;
+    private final Field callableField;
+
+    private boolean shutdown = false;
 
     /**
-     * @param executorService the executor to queue tasks in
+     * @param threadCount the number of threads to use
      * @param resourceMigrator the object responsible for performing the migration
+     * @param infoLogger the logger to use to record failed migrations
      */
-    public MigrationTaskManager(final ExecutorService executorService,
-                                final ResourceMigrator resourceMigrator) {
-        this.executorService = executorService;
+    public MigrationTaskManager(final int threadCount,
+                                final ResourceMigrator resourceMigrator,
+                                final ResourceInfoLogger infoLogger) {
+        this.workQueue = new LinkedBlockingQueue<>();
+        this.executorService = new ThreadPoolExecutor(threadCount, threadCount,
+                0L, TimeUnit.MILLISECONDS,
+                workQueue);
         this.resourceMigrator = resourceMigrator;
         this.count = new AtomicLong(0);
         this.lock = new Object();
+        this.infoLogger = infoLogger;
+
+        // Dirty hack to get original callable
+        try {
+            callableField = FutureTask.class.getDeclaredField("callable");
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException(e);
+        }
+        callableField.setAccessible(true);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (!shutdown) {
+                LOGGER.info("Shutting down...");
+                shutdown();
+            }
+        }));
     }
 
     /**
@@ -59,18 +93,8 @@ public class MigrationTaskManager {
      * @param info the resource to migrate
      */
     public void submit(final ResourceInfo info) {
-        final var task = new MigrateResourceTask(this, resourceMigrator, info);
-
-        executorService.submit(() -> {
-            try {
-                task.run();
-            } finally {
-                count.decrementAndGet();
-                synchronized (lock) {
-                    lock.notifyAll();
-                }
-            }
-        });
+        executorService.submit(new TaskWrapper(info,
+                new MigrateResourceTask(this, resourceMigrator, infoLogger, info)));
 
         count.incrementAndGet();
     }
@@ -94,19 +118,67 @@ public class MigrationTaskManager {
     }
 
     /**
-     * Shutsdown the executor and closes all resources.
-     *
-     * @throws InterruptedException on interrupt
+     * Shutsdown the executor service, drains all remaining tasks to the log, and waits for the in progress
+     * tasks to complete.
      */
-    public void shutdown() throws InterruptedException {
-        try {
-            executorService.shutdown();
-            if (!executorService.awaitTermination(1, TimeUnit.MINUTES)) {
-                LOGGER.error("Failed to shutdown executor service cleanly after 1 minute of waiting");
-                executorService.shutdownNow();
+    public synchronized void shutdown() {
+        if (!shutdown) {
+            shutdown = true;
+
+            try {
+                executorService.shutdown();
+                drainTasks();
+                LOGGER.info("Waiting for any inflight tasks to complete...");
+                if (!executorService.awaitTermination(5, TimeUnit.MINUTES)) {
+                    LOGGER.warn("Failed to shutdown executor service cleanly after 5 minutes of waiting");
+                    executorService.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                LOGGER.warn("Failed to shutdown executor service cleanly");
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } finally {
+                resourceMigrator.close();
             }
-        } finally {
-            resourceMigrator.close();
+        }
+    }
+
+    /**
+     * Empties the queue of unprocessed tasks and adds them to the remaining log
+     */
+    private void drainTasks() {
+        final List<Runnable> remaining = new ArrayList<>(workQueue.size());
+        workQueue.drainTo(remaining);
+        remaining.forEach(task -> {
+            try {
+                final TaskWrapper inner = (TaskWrapper) callableField.get(task);
+                infoLogger.log(inner.info);
+            } catch (Exception e) {
+                LOGGER.warn("Failed to extract unprocessed resource info", e);
+            }
+        });
+    }
+
+    private class TaskWrapper implements Callable<Void> {
+        private final ResourceInfo info;
+        private final Runnable runnable;
+
+        private TaskWrapper(final ResourceInfo info, final Runnable runnable) {
+            this.info = info;
+            this.runnable = runnable;
+        }
+
+        @Override
+        public Void call() {
+            try {
+                runnable.run();
+                return null;
+            } finally {
+                count.decrementAndGet();
+                synchronized (lock) {
+                    lock.notifyAll();
+                }
+            }
         }
     }
 

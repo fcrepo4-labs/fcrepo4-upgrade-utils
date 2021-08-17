@@ -25,19 +25,24 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 
 /**
  * @author pwinckles
@@ -51,16 +56,20 @@ public class MigrationTaskManagerTest {
     public ResourceMigrator resourceMigrator;
 
     private MigrationTaskManager manager;
-    private ExecutorService executorService;
 
     private ResourceInfo defaultInfo;
 
+    private Path logPath;
+
     @Before
-    public void setup() {
-        executorService = Executors.newSingleThreadExecutor();
-        manager = new MigrationTaskManager(executorService, resourceMigrator);
+    public void setup() throws IOException {
+        manager = new MigrationTaskManager(1, resourceMigrator, new ResourceInfoLogger());
         final var parent = randomId();
         defaultInfo = ResourceInfo.container(parent, join(parent, "child"), Paths.get("/"), "child");
+        logPath = Paths.get("target/remaining.log");
+        if (Files.exists(logPath)) {
+            Files.write(logPath, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
+        }
     }
 
     @Test
@@ -86,11 +95,52 @@ public class MigrationTaskManagerTest {
     public void rejectTaskWhenShutdown() throws InterruptedException {
         doReturn(new ArrayList<ResourceInfo>()).when(resourceMigrator).migrate(Mockito.any());
 
-        manager.submit(defaultInfo);
-        manager.awaitCompletion();
-        manager.shutdown();
+        submitAndComplete(defaultInfo);
 
         manager.submit(defaultInfo);
+    }
+
+    @Test
+    public void logInfoWhenTasksFail() throws InterruptedException {
+        doThrow(new RuntimeException()).when(resourceMigrator).migrate(Mockito.any());
+
+        submitAndComplete(defaultInfo);
+
+        assertLogContains(defaultInfo);
+    }
+
+    @Test
+    public void logInfoWhenShutdownWithOutstandingTasks() throws InterruptedException {
+        doAnswer(invocation -> {
+            TimeUnit.SECONDS.sleep(2);
+            return new ArrayList<ResourceInfo>();
+        }).when(resourceMigrator).migrate(Mockito.any());
+
+        final var info2 = ResourceInfo.container(defaultInfo.getFullId(),
+                join(defaultInfo.getFullId(), "child"), Paths.get("/"), "child");
+        final var info3 = ResourceInfo.container(info2.getFullId(),
+                join(info2.getFullId(), "child"), Paths.get("/"), "child");
+
+        manager.submit(defaultInfo);
+        manager.submit(info2);
+        manager.submit(info3);
+
+        TimeUnit.SECONDS.sleep(1);
+
+        manager.shutdown();
+
+        assertLogContains(info2, info3);
+    }
+
+    private void submitAndComplete(final ResourceInfo info) throws InterruptedException {
+        manager.submit(info);
+        manager.awaitCompletion();
+        manager.shutdown();
+    }
+
+    private void assertLogContains(final ResourceInfo... infos) {
+        final var actual = new ResourceInfoLogger().parseLog(logPath);
+        assertThat(actual, containsInAnyOrder(infos));
     }
 
     private String randomId() {

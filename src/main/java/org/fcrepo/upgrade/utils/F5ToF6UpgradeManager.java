@@ -19,6 +19,7 @@ package org.fcrepo.upgrade.utils;
 
 import org.fcrepo.upgrade.utils.f6.MigrationTaskManager;
 import org.fcrepo.upgrade.utils.f6.ResourceInfo;
+import org.fcrepo.upgrade.utils.f6.ResourceInfoLogger;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -41,14 +42,17 @@ class F5ToF6UpgradeManager implements UpgradeManager {
 
     private final Config config;
     private final MigrationTaskManager migrationTaskManager;
+    private final ResourceInfoLogger infoLogger;
 
     /**
      * Constructor
      */
     public F5ToF6UpgradeManager(final Config config,
-                                final MigrationTaskManager migrationTaskManager) {
+                                final MigrationTaskManager migrationTaskManager,
+                                final ResourceInfoLogger infoLogger) {
         this.config = config;
         this.migrationTaskManager = migrationTaskManager;
+        this.infoLogger = infoLogger;
     }
 
     /**
@@ -57,17 +61,25 @@ class F5ToF6UpgradeManager implements UpgradeManager {
     public void start() {
         LOGGER.info("Starting upgrade: config={}", config);
 
-        final var repoRoot = ResourceInfo.container(ROOT, ROOT, locateRestRoot(), REST);
-        migrationTaskManager.submit(repoRoot);
+        if (config.getResourceInfoFile() == null) {
+            LOGGER.info("Starting migration from repository root");
+            final var repoRoot = ResourceInfo.container(ROOT, ROOT, locateRestRoot(), REST);
+            migrationTaskManager.submit(repoRoot);
+        } else {
+            LOGGER.info("Starting migration from resources file {}", config.getResourceInfoFile());
+            final var infos = infoLogger.parseLog(config.getResourceInfoFile());
+            infos.forEach(migrationTaskManager::submit);
+        }
 
         try {
             migrationTaskManager.awaitCompletion();
-            LOGGER.info("Upgrade complete.");
-            migrationTaskManager.shutdown();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
+        } finally {
+            migrationTaskManager.shutdown();
         }
+        LOGGER.info("Upgrade complete.");
     }
 
     private Path locateRestRoot() {

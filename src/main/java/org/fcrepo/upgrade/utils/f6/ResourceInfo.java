@@ -18,7 +18,11 @@
 
 package org.fcrepo.upgrade.utils.f6;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.nio.file.Path;
+import java.util.Objects;
 
 /**
  * Encapsulates all of the information necessary to migrate a resource.
@@ -33,13 +37,27 @@ public class ResourceInfo {
         CONTAINER,
     }
 
-
     private final String parentId;
     private final String fullId;
     private final String nameEncoded;
     private final Path outerDirectory;
     private final Path innerDirectory;
     private final Type type;
+
+    /**
+     * Used by Jackson for deserialization
+     *
+     * @return resource info object
+     */
+    @JsonCreator
+    public static ResourceInfo deserialize(@JsonProperty("parentId") final String parentId,
+                                           @JsonProperty("fullId") final String fullId,
+                                           @JsonProperty("nameEncoded") final String nameEncoded,
+                                           @JsonProperty("outerDirectory") final Path outerDirectory,
+                                           @JsonProperty("innerDirectory") final Path innerDirectory,
+                                           @JsonProperty("type") final Type type) {
+        return new ResourceInfo(parentId, fullId, outerDirectory, innerDirectory, nameEncoded, type);
+    }
 
     /**
      * Create a ResourceInfo instance for a container resource
@@ -92,6 +110,20 @@ public class ResourceInfo {
     private ResourceInfo(final String parentId,
                          final String fullId,
                          final Path outerDirectory,
+                         final String nameEncoded,
+                         final Type type) {
+        this.parentId = parentId;
+        this.fullId = fullId;
+        this.nameEncoded = nameEncoded;
+        this.outerDirectory = outerDirectory;
+        this.innerDirectory = outerDirectory.resolve(nameEncoded);
+        this.type = type;
+    }
+
+    private ResourceInfo(final String parentId,
+                         final String fullId,
+                         final Path outerDirectory,
+                         final Path innerDirectory,
                          final String nameEncoded,
                          final Type type) {
         this.parentId = parentId;
@@ -156,4 +188,26 @@ public class ResourceInfo {
                 '}';
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ResourceInfo that = (ResourceInfo) o;
+        return Objects.equals(parentId, that.parentId)
+                && Objects.equals(fullId, that.fullId)
+                && Objects.equals(nameEncoded, that.nameEncoded)
+                && Objects.equals(outerDirectory.toAbsolutePath(), that.outerDirectory.toAbsolutePath())
+                && Objects.equals(innerDirectory.toAbsolutePath(), that.innerDirectory.toAbsolutePath())
+                && type == that.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(parentId, fullId, nameEncoded,
+                outerDirectory.toAbsolutePath(), innerDirectory.toAbsolutePath(), type);
+    }
 }

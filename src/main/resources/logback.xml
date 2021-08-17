@@ -7,11 +7,36 @@
         </encoder>
     </appender>
 
+    <timestamp key="bySecond" datePattern="yyyyMMdd'T'HHmmss"/>
+
+    <!-- This appender is used to create a file that contains URIs of resources that were not migrated
+         either due to failure or early termination -->
+    <appender name="REMAINING" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <Key>defaultKey</Key>
+            <defaultValue>defaultValue</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="REMAINING-INNER" class="ch.qos.logback.core.FileAppender">
+                <!-- use the previously created timestamp to create a uniquely
+                  named log file -->
+                <file>${PWD}/remaining_${bySecond}.log</file>
+                <prudent>true</prudent>
+                <encoder>
+                    <pattern>%msg%n</pattern>
+                </encoder>
+            </appender>
+        </sift>
+    </appender>
+
   <logger name="org.fcrepo.kernel" additivity="false" level="${fcrepo.log.utils:-INFO}">
     <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.fcrepo" additivity="false" level="${fcrepo.log:-INFO}">
     <appender-ref ref="STDOUT"/>
+  </logger>
+  <logger name="org.fcrepo.upgrade.utils.remaining" additivity="false" level="INFO">
+      <appender-ref ref="REMAINING"/>
   </logger>
 
   <root additivity="false" level="WARN">

@@ -7,11 +7,26 @@
         </encoder>
     </appender>
 
+    <!-- This appender is used to create a file that contains URIs of resources that were not migrated
+       either due to failure or early termination -->
+    <appender name="REMAINING" class="ch.qos.logback.core.FileAppender">
+        <!-- use the previously created timestamp to create a uniquely
+          named log file -->
+        <file>target/remaining.log</file>
+        <prudent>true</prudent>
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
   <logger name="org.fcrepo.kernel" additivity="false" level="${fcrepo.log.upgrade.utils:-INFO}">
     <appender-ref ref="STDOUT"/>
   </logger>
   <logger name="org.fcrepo" additivity="false" level="${fcrepo.log:-INFO}">
     <appender-ref ref="STDOUT"/>
+  </logger>
+  <logger name="org.fcrepo.upgrade.utils.remaining" additivity="false" level="INFO">
+      <appender-ref ref="REMAINING"/>
   </logger>
 
   <root additivity="false" level="WARN">

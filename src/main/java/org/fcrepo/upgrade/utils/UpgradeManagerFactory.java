@@ -39,6 +39,7 @@ import org.fcrepo.storage.ocfl.DefaultOcflObjectSessionFactory;
 import org.fcrepo.storage.ocfl.OcflObjectSessionFactory;
 import org.fcrepo.storage.ocfl.cache.CaffeineCache;
 import org.fcrepo.upgrade.utils.f6.MigrationTaskManager;
+import org.fcrepo.upgrade.utils.f6.ResourceInfoLogger;
 import org.fcrepo.upgrade.utils.f6.ResourceMigrator;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -51,7 +52,6 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.concurrent.Executors;
 
 import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
 import static java.lang.String.format;
@@ -68,7 +68,8 @@ public class UpgradeManagerFactory {
             return new F47ToF5UpgradeManager(config);
         } else if (config.getSourceVersion().equals(FedoraVersion.V_5) &&
                    config.getTargetVersion().equals(FedoraVersion.V_6)) {
-            return new F5ToF6UpgradeManager(config, createF6MigrationTaskManager(config));
+            final var infoLogger = new ResourceInfoLogger();
+            return new F5ToF6UpgradeManager(config, createF6MigrationTaskManager(config, infoLogger), infoLogger);
         } else {
             throw new IllegalArgumentException(format("The migration path from %s to %s is not supported.",
                                                       config.getSourceVersion().getStringValue(),
@@ -76,10 +77,10 @@ public class UpgradeManagerFactory {
         }
     }
 
-    private static MigrationTaskManager createF6MigrationTaskManager(final Config config) {
-        final var executor = Executors.newFixedThreadPool(config.getThreads());
+    private static MigrationTaskManager createF6MigrationTaskManager(final Config config,
+                                                                     final ResourceInfoLogger infoLogger) {
         final var migrator = new ResourceMigrator(config, createOcflObjectSessionFactory(config));
-        return new MigrationTaskManager(executor, migrator);
+        return new MigrationTaskManager(config.getThreads(), migrator, infoLogger);
     }
 
     @VisibleForTesting

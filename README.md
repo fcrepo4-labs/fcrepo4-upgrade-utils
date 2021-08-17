@@ -36,6 +36,8 @@ usage: java -jar fcrepo-upgrade-util-<version>.jar
                                      cores
  -r,--source-rdf <arg>               The RDF language used in the Fedora
                                      export. Default: Turtle
+ -R,--resource-info-file <arg>       The path of the file that contains a
+                                     list of resources to be processed
  -s,--source-version <arg>           The version of Fedora that was the
                                      source of the export. Valid values:
                                      5+,4.7.5
@@ -60,6 +62,21 @@ usage: java -jar fcrepo-upgrade-util-<version>.jar
     --write-to-s3                    Enables writing migrated Fedora 6
                                      data to S3 rather than the local
                                      filesystem
+```
+
+### Resuming Fedora 6 Migration
+
+If a Fedora 6 migration is interrupted or a subset of resources fail to migrate, then a log file named
+`remaining_TIMESTAMP.log` is created that contains information about the resources that were not migrated. The
+migration can be resumed by passing this file back to the utility on a subsequent run. For example:
+
+```shell
+java -jar fcrepo-upgrade-utils.jar \
+  --input-dir my-5.1.1-export \
+  --source-version 5+ \
+  --target-version 6+ \
+  --base-uri http://localhost:8080/rest \
+  --resource-info-file remaining_TIMESTAMP.log
 ```
 
 ### S3
