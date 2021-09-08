@@ -23,6 +23,7 @@ import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_CREATED_DATE;
 import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_LAST_MODIFIED_DATE;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -244,7 +245,7 @@ public class ResourceMigrator {
         final var descId = joinId(info.getFullId(), FCR_METADATA_ID);
         final var descHeaders = createBinaryDescHeaders(info.getFullId(), descId, rdf);
 
-        try (final var stream = Files.newInputStream(binaryFile)) {
+        try (final var stream = new BufferedInputStream(Files.newInputStream(binaryFile))) {
             writeBinary(info.getFullId(), binaryDir, headers, stream, descHeaders, rdf, timestamp);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

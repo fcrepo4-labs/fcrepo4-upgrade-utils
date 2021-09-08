@@ -42,11 +42,13 @@ import static org.fcrepo.upgrade.utils.RdfConstants.MEMENTO;
 import static org.fcrepo.upgrade.utils.RdfConstants.NON_RDF_SOURCE_DESCRIPTION;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
@@ -168,7 +170,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         throws IOException {
         //parse the file
         final Model model = ModelFactory.createDefaultModel();
-        try (final FileInputStream is = new FileInputStream(newLocation.toFile())) {
+        try (final InputStream is = new BufferedInputStream(new FileInputStream(newLocation.toFile()))) {
             RDFDataMgr.read(model, is, Lang.TTL);
         }
 
@@ -463,7 +465,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
     private Model createModelFromFile(final Path path) {
         final Model model = ModelFactory.createDefaultModel();
-        try (final FileInputStream is = new FileInputStream(path.toFile())) {
+        try (final InputStream is = new BufferedInputStream(new FileInputStream(path.toFile()))) {
             RDFDataMgr.read(model, is, Lang.TTL);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
