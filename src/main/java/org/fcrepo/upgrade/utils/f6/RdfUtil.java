@@ -35,6 +35,7 @@ import org.apache.jena.vocabulary.RDF;
 import org.fcrepo.upgrade.utils.RdfConstants;
 import org.slf4j.Logger;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -72,7 +73,7 @@ public final class RdfUtil {
      */
     public static Model parseRdf(final Path path, final Lang lang) {
         final var model = ModelFactory.createDefaultModel();
-        try (final var is = Files.newInputStream(path)) {
+        try (final var is = new BufferedInputStream(Files.newInputStream(path))) {
             RDFDataMgr.read(model, is, lang);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
