@@ -43,12 +43,14 @@ import static org.fcrepo.upgrade.utils.RdfConstants.NON_RDF_SOURCE_DESCRIPTION;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZoneId;
@@ -294,7 +296,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         // rewrite only if the model has changed.
         if (rewriteModel.get()) {
             try {
-                RDFDataMgr.write(new FileOutputStream(newLocation.toFile()), model, Lang.TTL);
+                RDFDataMgr.write(new BufferedOutputStream(new FileOutputStream(newLocation.toFile())), model, Lang.TTL);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -394,7 +396,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         }
 
         //save to new acl to file
-        try (final FileOutputStream os = new FileOutputStream(newAclFilePath.toFile())) {
+        try (final OutputStream os = new BufferedOutputStream(new FileOutputStream(newAclFilePath.toFile()))) {
             RDFDataMgr.write(os, newModel, Lang.TTL);
         } catch (IOException e) {
             throw new RuntimeException(e);
