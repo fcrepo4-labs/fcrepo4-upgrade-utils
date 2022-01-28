@@ -18,8 +18,7 @@ import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
 import edu.wisc.library.ocfl.core.path.mapper.LogicalPathMappers;
 import edu.wisc.library.ocfl.core.storage.OcflStorage;
-import edu.wisc.library.ocfl.core.storage.cloud.CloudOcflStorage;
-import edu.wisc.library.ocfl.core.storage.filesystem.FileSystemOcflStorage;
+import edu.wisc.library.ocfl.core.storage.OcflStorageBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.fcrepo.storage.ocfl.CommitType;
@@ -119,15 +118,15 @@ public class UpgradeManagerFactory {
         final OcflStorage storage;
 
         if (config.isWriteToS3()) {
-            storage = CloudOcflStorage.builder()
-                    .cloudClient(OcflS3Client.builder()
+            storage = OcflStorageBuilder.builder()
+                                        .cloud(OcflS3Client.builder()
                             .s3Client(s3Client(config))
                             .bucket(config.getS3Bucket())
                             .repoPrefix(config.getS3Prefix())
                             .build())
-                    .build();
+                                        .build();
         } else {
-            storage = FileSystemOcflStorage.builder().repositoryRoot(storageRoot).build();
+            storage = OcflStorageBuilder.builder().fileSystem(storageRoot).build();
         }
 
         return new OcflRepositoryBuilder()
