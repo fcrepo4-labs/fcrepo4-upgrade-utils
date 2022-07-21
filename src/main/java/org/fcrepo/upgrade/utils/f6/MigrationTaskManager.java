@@ -8,14 +8,12 @@ package org.fcrepo.upgrade.utils.f6;
 
 import org.slf4j.Logger;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -32,12 +30,10 @@ public class MigrationTaskManager {
     private static final Logger LOGGER = getLogger(MigrationTaskManager.class);
 
     private final ExecutorService executorService;
-    private final BlockingQueue<Runnable> workQueue;
     private final ResourceMigrator resourceMigrator;
     private final AtomicLong count;
     private final Object lock;
     private final ResourceInfoLogger infoLogger;
-    private final Field callableField;
 
     private boolean shutdown = false;
 
@@ -49,22 +45,18 @@ public class MigrationTaskManager {
     public MigrationTaskManager(final int threadCount,
                                 final ResourceMigrator resourceMigrator,
                                 final ResourceInfoLogger infoLogger) {
-        this.workQueue = new LinkedBlockingQueue<>();
         this.executorService = new ThreadPoolExecutor(threadCount, threadCount,
                 0L, TimeUnit.MILLISECONDS,
-                workQueue);
+                new LinkedBlockingQueue<>()) {
+            @Override
+            protected <T> RunnableFuture<T> newTaskFor(final Callable<T> callable) {
+                return new FutureTaskWithCallable<>(callable);
+            }
+        };
         this.resourceMigrator = resourceMigrator;
         this.count = new AtomicLong(0);
         this.lock = new Object();
         this.infoLogger = infoLogger;
-
-        // Dirty hack to get original callable
-        try {
-            callableField = FutureTask.class.getDeclaredField("callable");
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-        callableField.setAccessible(true);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (!shutdown) {
@@ -114,12 +106,11 @@ public class MigrationTaskManager {
             shutdown = true;
 
             try {
-                executorService.shutdown();
-                drainTasks();
+                final var remaining = executorService.shutdownNow();
+                logRemainingTasks(remaining);
                 LOGGER.info("Waiting for any inflight tasks to complete...");
                 if (!executorService.awaitTermination(5, TimeUnit.MINUTES)) {
                     LOGGER.warn("Failed to shutdown executor service cleanly after 5 minutes of waiting");
-                    executorService.shutdownNow();
                 }
             } catch (InterruptedException e) {
                 LOGGER.warn("Failed to shutdown executor service cleanly");
@@ -132,19 +123,32 @@ public class MigrationTaskManager {
     }
 
     /**
-     * Empties the queue of unprocessed tasks and adds them to the remaining log
+     * Adds remaining tasks to log
      */
-    private void drainTasks() {
-        final List<Runnable> remaining = new ArrayList<>(workQueue.size());
-        workQueue.drainTo(remaining);
+    @SuppressWarnings("unchecked")
+    private void logRemainingTasks(final List<Runnable> remaining) {
         remaining.forEach(task -> {
             try {
-                final TaskWrapper inner = (TaskWrapper) callableField.get(task);
-                infoLogger.log(inner.info);
+                final var callable = (TaskWrapper) ((FutureTaskWithCallable<Void>) task).callable;
+                infoLogger.log(callable.info);
             } catch (Exception e) {
                 LOGGER.warn("Failed to extract unprocessed resource info", e);
             }
         });
+    }
+
+    /**
+     * FutureTask extension that supports accessing the wrapped Callable
+     */
+    private static class FutureTaskWithCallable<V> extends FutureTask<V> {
+
+        private final Callable<V> callable;
+
+        public FutureTaskWithCallable(final Callable<V> callable) {
+            super(callable);
+            this.callable = callable;
+        }
+
     }
 
     private class TaskWrapper implements Callable<Void> {
