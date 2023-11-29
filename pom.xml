@@ -49,7 +49,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.copyrightYear>2019</project.copyrightYear>
-    <logback.version>1.2.3</logback.version>
+    <logback.version>1.3.12</logback.version>
     <mockito.version>2.28.2</mockito.version>
     <github.global.server>github</github.global.server>
     <slf4j.version>1.7.26</slf4j.version>
