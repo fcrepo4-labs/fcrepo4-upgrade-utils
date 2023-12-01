@@ -13,6 +13,7 @@ import com.google.common.annotations.VisibleForTesting;
 import edu.wisc.library.ocfl.api.MutableOcflRepository;
 import edu.wisc.library.ocfl.api.OcflConfig;
 import edu.wisc.library.ocfl.api.model.DigestAlgorithm;
+import edu.wisc.library.ocfl.api.model.OcflVersion;
 import edu.wisc.library.ocfl.aws.OcflS3Client;
 import edu.wisc.library.ocfl.core.OcflRepositoryBuilder;
 import edu.wisc.library.ocfl.core.extension.storage.layout.config.HashedNTupleLayoutConfig;
@@ -132,7 +133,10 @@ public class UpgradeManagerFactory {
         return new OcflRepositoryBuilder()
                 .defaultLayoutConfig(new HashedNTupleLayoutConfig())
                 .ocflConfig(new OcflConfig()
-                        .setDefaultDigestAlgorithm(digestAlgorithm))
+                        .setDefaultDigestAlgorithm(digestAlgorithm)
+                        .setOcflVersion(OcflVersion.OCFL_1_1)
+                        .setUpgradeObjectsOnWrite(true)
+                )
                 .logicalPathMapper(logicalPathMapper)
                 .storage(storage)
                 .workDir(workDir)
