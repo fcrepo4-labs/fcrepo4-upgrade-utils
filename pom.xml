@@ -10,7 +10,7 @@
   </parent>
 
   <groupId>org.fcrepo</groupId>
-  <version>6.2.0-SNAPSHOT</version>
+  <version>6.3.0-SNAPSHOT</version>
   <artifactId>fcrepo-upgrade-utils</artifactId>
   <name>Fedora Repository Utilities</name>
   <description>The Fedora Commons repository upgrade utilities: Provides tools for maintaining the Fedora Commons
