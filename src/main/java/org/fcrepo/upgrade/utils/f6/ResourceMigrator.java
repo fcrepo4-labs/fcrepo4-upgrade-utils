@@ -90,7 +90,7 @@ public class ResourceMigrator {
 
         this.baseUri = stripTrailingSlash(config.getBaseUri());
         this.srcRdfLang = config.getSrcRdfLang();
-        this.srcRdfExt = "." + srcRdfLang.getFileExtensions().get(0);
+        this.srcRdfExt = "." + config.getSrcRdfExt();
 
         // Currently, this is all F6 supports
         this.dstRdfLang = Lang.NT;

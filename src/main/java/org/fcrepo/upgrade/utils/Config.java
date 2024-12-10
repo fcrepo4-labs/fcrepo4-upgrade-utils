@@ -219,6 +219,13 @@ public class Config {
     }
 
     /**
+     * @return the extension of the rdf lang of the export
+     */
+    public String getSrcRdfExt() {
+        return srcRdfLang.getFileExtensions().get(0);
+    }
+
+    /**
      * Sets the rdf lang of the export
      * @param srcRdfLang the rdf lang of the export
      */

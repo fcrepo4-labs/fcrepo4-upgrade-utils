@@ -90,7 +90,6 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
     private static final String FCR_VERSIONS_PATH_SEGMENT = "fcr%3Aversions";
     private static final String FCR_ACL_PATH_SEGMENT = "fcr%3Aacl";
     private static final String TYPE_RELATION = "type";
-    private static final String TURTLE_EXTENSION = ".ttl";
     private static final String HEADERS_SUFFIX = ".headers";
     public static final String APPLICATION_OCTET_STREAM_MIMETYPE = "application/octet-stream";
     /**
@@ -120,7 +119,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
     private void processFile(final Path path) {
 
         //skip versions container
-        if (path.endsWith(FCR_VERSIONS_PATH_SEGMENT + TURTLE_EXTENSION)) {
+        if (path.endsWith(FCR_VERSIONS_PATH_SEGMENT + "." + config.getSrcRdfExt())) {
             LOGGER.debug("version containers are not required for import.  Skipping {}...", path);
             return;
         }
@@ -145,7 +144,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
             Files.createDirectories(newLocation.getParent());
             LOGGER.debug("copy file {} to {}", path, newLocation);
             FileUtils.copyFile(path.toFile(), newLocation.toFile());
-            if (newLocation.toString().endsWith(TURTLE_EXTENSION)) {
+            if (newLocation.toString().endsWith(config.getSrcRdfExt())) {
                 upgradeRdfAndCreateHeaders(versionTimestamp, newLocation);
             }
             LOGGER.info("Resource upgraded: {}", path);
@@ -321,7 +320,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         //locate the exported acl rdf on disk based on aclURI
         final var relativeAclPath = create(aclUri).getPath();
         final var aclDirectory = Path.of(this.config.getInputDir().toPath().toString(), relativeAclPath);
-        final var aclRdfFilePath = aclDirectory + TURTLE_EXTENSION;
+        final var aclRdfFilePath = aclDirectory + "." + config.getSrcRdfExt();
         final var newAclResource = ResourceFactory.createResource(protectedResource + "/fcr:acl");
         final var aclModel = createModelFromFile(Path.of(aclRdfFilePath));
         final var aclTriples = new ArrayList<Statement>();
@@ -338,7 +337,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
         final var newAclFilePath = Path
             .of(FilenameUtils.removeExtension(convertedProtectedResourceLocation.toString()),
-                FCR_ACL_PATH_SEGMENT + TURTLE_EXTENSION);
+                FCR_ACL_PATH_SEGMENT + "." + config.getSrcRdfExt());
         newAclFilePath.getParent().toFile().mkdirs();
 
         //determine the location of new acl
@@ -422,7 +421,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         while (currentPath != path.getRoot()) {
             final var parent = currentPath.getParent();
             if (parent.endsWith(FCR_VERSIONS_PATH_SEGMENT)) {
-                return Path.of(parent.toString() + TURTLE_EXTENSION);
+                return Path.of(parent.toString() + "." + config.getSrcRdfExt());
             }
 
             currentPath = parent;
@@ -432,10 +431,10 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
     private TemporalAccessor resolveMementoTimestamp(final Path path) {
         var metadataPath = path;
-        if (!path.toString().endsWith(TURTLE_EXTENSION)) {
+        if (!path.toString().endsWith(config.getSrcRdfExt())) {
             final var metadataPathStr = metadataPath.toString();
             final var newMetadataPathStr = FilenameUtils.removeExtension(metadataPathStr) + File.separator +
-                                           FCR_METADATA_PATH_SEGMENT + TURTLE_EXTENSION;
+                                           FCR_METADATA_PATH_SEGMENT + "." + config.getSrcRdfExt();
             metadataPath = Path.of(newMetadataPathStr);
         }
 
@@ -466,7 +465,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
     private Path resolveNewVersionedResourceLocation(final Path path, final TemporalAccessor mementoTimestamp) {
         final var mementoId = MEMENTO_FORMATTER.format(mementoTimestamp);
         //create a new location compatible with an F5 export.
-        final var isDescription = path.endsWith(FCR_METADATA_PATH_SEGMENT + TURTLE_EXTENSION);
+        final var isDescription = path.endsWith(FCR_METADATA_PATH_SEGMENT + "." + config.getSrcRdfExt());
         final var inputPath = this.config.getInputDir().toPath();
         final var relativePath = inputPath.relativize(path);
         final var relativePathStr = relativePath.toString();
