@@ -160,7 +160,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         //parse the file
         final Model model = ModelFactory.createDefaultModel();
         try (final InputStream is = new BufferedInputStream(new FileInputStream(newLocation.toFile()))) {
-            RDFDataMgr.read(model, is, Lang.TTL);
+            RDFDataMgr.read(model, is, config.getSrcRdfLang());
         }
 
         final Map<String, List<String>> metadataHeaders = new HashMap<>();
@@ -283,7 +283,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
         // rewrite only if the model has changed.
         if (rewriteModel.get()) {
             try {
-                RDFDataMgr.write(new BufferedOutputStream(new FileOutputStream(newLocation.toFile())), model, Lang.TTL);
+                RDFDataMgr.write(new BufferedOutputStream(new FileOutputStream(newLocation.toFile())), model, config.getSrcRdfLang());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -384,7 +384,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
         //save to new acl to file
         try (final OutputStream os = new BufferedOutputStream(new FileOutputStream(newAclFilePath.toFile()))) {
-            RDFDataMgr.write(os, newModel, Lang.TTL);
+            RDFDataMgr.write(os, newModel, config.getSrcRdfLang());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -455,7 +455,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
     private Model createModelFromFile(final Path path) {
         final Model model = ModelFactory.createDefaultModel();
         try (final InputStream is = new BufferedInputStream(new FileInputStream(path.toFile()))) {
-            RDFDataMgr.read(model, is, Lang.TTL);
+            RDFDataMgr.read(model, is, config.getSrcRdfLang());
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
