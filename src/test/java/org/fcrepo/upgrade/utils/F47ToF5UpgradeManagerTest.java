@@ -160,6 +160,120 @@ public class F47ToF5UpgradeManagerTest {
                      lastModifiedStatement.getSubject().getURI());
     }
 
+    @Test
+    public void testUpgradeWithNTriples() throws Exception {
+        //prepare
+        final File tmpDir = tempFolder.newFolder();
+        final File input = new File(TARGET_DIR + "/test-classes/4.7.5-export-ntriples");
+        final File output = new File(tmpDir, "output");
+        output.mkdir();
+
+        final var config = new Config();
+        config.setSourceVersion(FedoraVersion.V_4_7_5);
+        config.setTargetVersion(FedoraVersion.V_5);
+        config.setInputDir(input);
+        config.setOutputDir(output);
+        config.setSrcRdfLang(Lang.NT);
+        //run
+        UpgradeManager upgradeManager = UpgradeManagerFactory.create(config);
+        upgradeManager.start();
+        //ensure all expected files exist
+        final String[] expectedFiles =
+            new String[]{"rest.nt",
+                         "rest.nt.headers",
+                         "rest/external1",
+                         "rest/external1/fcr%3Ametadata.nt",
+                         "rest/container1.nt",
+                         "rest/container1.nt.headers",
+                         "rest/container1/fcr%3Aacl.nt",
+                         "rest/container1/fcr%3Aversions/20201015053947.nt",
+                         "rest/container1/fcr%3Aversions/20201015053947.nt.headers",
+                         "rest/container1/fcr%3Aversions/20201015053526.nt",
+                         "rest/container1/fcr%3Aversions/20201015053526.nt.headers",
+                         "rest/container1/testbinary.binary",
+                         "rest/container1/testbinary/fcr%3Ametadata.nt",
+                         "rest/container1/testbinary.binary.headers",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053717.nt",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053717.nt.headers",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053848.nt",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053848.nt.headers",
+                         "rest/container1/testbinary/fcr%3Aversions/20201015053848.binary",
+                         "rest/container1/testbinary/fcr%3Aversions/20201015053848.binary.headers",
+                         "rest/container1/testbinary/fcr%3Aversions/20201015053717.binary",
+                         "rest/external1.external.headers",
+                         "rest/external1.external"};
+
+        for (String f : expectedFiles) {
+            assertTrue(f + " does not exist as expected", new File(output, f).exists());
+        }
+
+        final String[] unexpectedFiles =
+            new String[]{"rest/acl.nt",
+                         "rest/acl/authZ1.nt",
+                         "rest/acl/authZ2.nt"};
+
+        for (String f : unexpectedFiles) {
+            assertFalse(f + " should not exist.", new File(output, f).exists());
+        }
+        //ensure external content has been transformed properly
+
+        final String externalContent = FileUtils
+            .readFileToString(new File(output, "rest/external1/fcr%3Ametadata.nt"), "UTF-8");
+        assertFalse("external content metadata should contain the mimetype", externalContent.contains("image/jpg"));
+        assertFalse("message/external-body should not be present in the external content metadata",
+                    externalContent.contains("message/external-body"));
+
+        //ensure the binaries contain NonRDFSource types in their headers
+        final Map<String, List<String>> bheadders =
+            deserializeHeaders(new File(output, "rest/container1/testbinary.binary.headers"));
+        assertTrue("binary does not contain NonRDFSource type in the link headers",
+                   bheadders.get("Link").stream().anyMatch(x -> x.contains("NonRDFSource")));
+
+        for (String f : expectedFiles) {
+            final var file = new File(output, f);
+            if (f.contains("fcr%3Aversions")) {
+
+                if (f.endsWith(".headers")) {
+                    final Map<String, List<String>> mHeaders =
+                        deserializeHeaders(file);
+                    assertTrue("Memento headers do not contain memento type link header",
+                               mHeaders.get("Link").stream().anyMatch(x -> x.contains("Memento")));
+                    assertTrue("Memento headers do not contain Memento-Datetime header",
+                               mHeaders.get("Memento-Datetime") != null);
+                } else if (f.contains("fcr:%3Ametadata")) {
+                    final var contents = IOUtils.toString(new FileInputStream(file), Charset.defaultCharset());
+                    assertTrue("Mementos should not contain links to other mementos",
+                               !contents.contains("fcr:versions/"));
+                }
+            }
+        }
+
+
+        //validate acl
+        //ensure there are two authorizations under the hash uri #auth0 and #auth1
+        final var model = RdfUtil.parseRdf(Path.of(output.toString(), "rest/container1/fcr%3Aacl.nt"), Lang.TTL);
+        final var authSubjects = new ArrayList<String>();
+        model.listStatements().toList()
+             .stream().filter(x -> x.getPredicate().equals(RDF.type) && x.getObject().equals(AUTHORIZATION))
+             .forEach(x -> {
+                 authSubjects.add(x.getSubject().asResource().getURI());
+             });
+
+        assertEquals("There should be two authorizations.", 2, authSubjects.size());
+        assertTrue("There should be a subject with #auth0 hash uri",
+                   authSubjects.contains("http://localhost:8080/rest/container1/fcr:acl#auth0"));
+        assertTrue("There should be a subject with #auth1 hash uri",
+                   authSubjects.contains("http://localhost:8080/rest/container1/fcr:acl#auth1"));
+
+        final var lastModifiedStatement = model.listStatements().toList().stream()
+                                               .filter(x -> x.getPredicate().equals(FEDORA_LAST_MODIFIED_DATE))
+                                               .findFirst().get();
+        assertTrue("There should be a last modified date", lastModifiedStatement != null);
+        assertEquals("The subject should be be the acl: ",
+                     "http://localhost:8080/rest/container1/fcr:acl",
+                     lastModifiedStatement.getSubject().getURI());
+    }
+
     private Map<String, List<String>> deserializeHeaders(final File headerFile) throws IOException {
         final byte[] mapData = Files.readAllBytes(Paths.get(headerFile.toURI()));
         final ObjectMapper objectMapper = new ObjectMapper();
