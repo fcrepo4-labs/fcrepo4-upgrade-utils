@@ -219,6 +219,15 @@ public class ResourceMigratorTest {
     }
 
     @Test
+    public void migrateBasicContainerWithCustomPredicateUsage() {
+        final var info = containerInfo("container-with-custom-predicate-usage");
+
+        migrateNoChildren(info);
+
+        assertResourcesSame(info);
+    }
+
+    @Test
     public void migrateBinaryWithEncodedName() {
         final var info = binaryInfo("binary:with!encoding");
 

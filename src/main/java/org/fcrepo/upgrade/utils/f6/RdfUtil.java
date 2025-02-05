@@ -36,6 +36,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.function.Predicate;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -82,12 +83,14 @@ public final class RdfUtil {
     public static InputStream writeRdfTranslateIds(final Model rdf,
                                                    final Lang lang,
                                                    final String original,
-                                                   final String replacement) {
+                                                   final String replacement,
+                                                   final boolean isBinary) {
         try (final var baos = new ByteArrayOutputStream()) {
             final var writer = StreamRDFWriter.getWriterStream(baos, lang);
             writer.start();
 
-            rdf.listStatements().filterDrop(RdfUtil::isServerManagedTriple)
+            Predicate<Statement> dropStatement = s -> isServerManagedTriple(s) || (isBinary && RdfConstants.binaryProperties.contains(s.getPredicate()));
+            rdf.listStatements().filterDrop(dropStatement)
                     .mapWith(Statement::asTriple)
                     .mapWith(triple -> {
                         return Triple.create(translateId(triple.getSubject(), original, replacement),
