@@ -41,6 +41,7 @@ public class Config {
     private String fedoraUserAddress = DEFAULT_USER_ADDRESS;
     private boolean forceWindowsMode = false;
     private Path resourceInfoFile;
+    private boolean skipAcls = false;
 
     // S3 Options
     private boolean writeToS3;
@@ -249,6 +250,20 @@ public class Config {
     }
 
     /**
+     * @return true if should skip special handling of acl resources
+     */
+    public boolean isSkipAcls() {
+        return skipAcls;
+    }
+
+    /**
+     * @param skipAcls true if should skip special handling of acl resources
+     */
+    public void setSkipAcls(final boolean skipAcls) {
+        this.skipAcls = skipAcls;
+    }
+
+    /**
      * @return true if should write migrated resources to S3
      */
     public boolean isWriteToS3() {
@@ -388,6 +403,7 @@ public class Config {
                 ", fedoraUser='" + fedoraUser + '\'' +
                 ", fedoraUserAddress='" + fedoraUserAddress + '\'' +
                 ", forceWindowsMode=" + forceWindowsMode +
+                ", skipAcls=" + skipAcls +
                 ", writeToS3=" + writeToS3 +
                 ", s3Region='" + s3Region + '\'' +
                 ", s3Endpoint='" + s3Endpoint + '\'' +
