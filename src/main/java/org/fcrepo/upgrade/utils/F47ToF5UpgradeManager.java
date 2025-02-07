@@ -182,7 +182,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
 
         //skip if ACL or Authorization: these files are upgraded through a separate code path
         // see convertAcl() below.
-        if (rdfTypes.contains(ACL) || rdfTypes.contains(AUTHORIZATION)) {
+        if (!this.config.isSkipAcls() && (rdfTypes.contains(ACL) || rdfTypes.contains(AUTHORIZATION))) {
             newLocation.toFile().delete();
             return;
         }
@@ -251,7 +251,7 @@ class F47ToF5UpgradeManager extends UpgradeManagerBase implements UpgradeManager
                     }
                 }
                 binaryHeaders.put(CONTENT_TYPE_HEADER, Collections.singletonList(mimetype));
-            } else if (statement.getPredicate().equals(ACCESS_CONTROL)) {
+            } else if (!this.config.isSkipAcls() && statement.getPredicate().equals(ACCESS_CONTROL)) {
                 //remove the current statement across both past versions and latest version
                 model.remove(currentStatement);
                 rewriteModel.set(true);

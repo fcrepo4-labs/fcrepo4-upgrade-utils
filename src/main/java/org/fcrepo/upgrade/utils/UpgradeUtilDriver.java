@@ -162,6 +162,8 @@ public class UpgradeUtilDriver {
         config.setFedoraUser(cmd.getOptionValue("migration-user"));
         config.setFedoraUserAddress(cmd.getOptionValue("migration-user-address"));
 
+        config.setSkipAcls(cmd.hasOption("skip-acls"));
+
         config.setWriteToS3(cmd.hasOption("write-to-s3"));
         config.setS3Region(cmd.getOptionValue("s3-region"));
         config.setS3Endpoint(cmd.getOptionValue("s3-endpoint"));
@@ -274,6 +276,12 @@ public class UpgradeUtilDriver {
                 .hasArg(true)
                 .desc("The address of the user OCFL versions are attributed to. Default: "
                         + Config.DEFAULT_USER_ADDRESS)
+                .required(false)
+                .build());
+        configOptions.addOption(Option.builder()
+                .longOpt("skip-acls")
+                .hasArg(false)
+                .desc("Skip creating fcr:acl resources and migrate webac:Acl and acl:Authorization resources normally")
                 .required(false)
                 .build());
 

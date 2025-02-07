@@ -38,6 +38,9 @@ usage: java -jar fcrepo-upgrade-util-<version>.jar
                                      export. Default: Turtle
  -R,--resource-info-file <arg>       The path of the file that contains a
                                      list of resources to be processed
+    --skip-acls                      Skip creating fcr:acl resources
+                                     and migrate webac:Acl and
+                                     acl:Authorization resources normally
  -s,--source-version <arg>           The version of Fedora that was the
                                      source of the export. Valid values:
                                      5+,4.7.5

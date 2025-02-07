@@ -5,6 +5,7 @@
  */
 package org.fcrepo.upgrade.utils;
 
+import static org.fcrepo.upgrade.utils.RdfConstants.ACCESS_CONTROL;
 import static org.fcrepo.upgrade.utils.RdfConstants.AUTHORIZATION;
 import static org.fcrepo.upgrade.utils.RdfConstants.FEDORA_LAST_MODIFIED_DATE;
 import static org.junit.Assert.assertEquals;
@@ -155,9 +156,75 @@ public class F47ToF5UpgradeManagerTest {
                                                .filter(x -> x.getPredicate().equals(FEDORA_LAST_MODIFIED_DATE))
                                                .findFirst().get();
         assertTrue("There should be a last modified date", lastModifiedStatement != null);
-        assertEquals("The subject should be be the acl: ",
+        assertEquals("The subject should be the acl: ",
                      "http://localhost:8080/rest/container1/fcr:acl",
                      lastModifiedStatement.getSubject().getURI());
+    }
+
+    @Test
+    public void testUpgradeSkipAcls() throws Exception {
+        //prepare
+        final File tmpDir = tempFolder.newFolder();
+        final File input = new File(TARGET_DIR + "/test-classes/4.7.5-export");
+        final File output = new File(tmpDir, "output");
+        output.mkdir();
+
+        final var config = new Config();
+        config.setSourceVersion(FedoraVersion.V_4_7_5);
+        config.setTargetVersion(FedoraVersion.V_5);
+        config.setInputDir(input);
+        config.setOutputDir(output);
+	config.setSkipAcls(true);
+        //run
+        UpgradeManager upgradeManager = UpgradeManagerFactory.create(config);
+        upgradeManager.start();
+        //ensure all expected files exist
+        final String[] expectedFiles =
+            new String[]{"rest.ttl",
+                         "rest.ttl.headers",
+                         "rest/acl.ttl",
+                         "rest/acl/authZ1.ttl",
+                         "rest/acl/authZ2.ttl",
+                         "rest/external1",
+                         "rest/external1/fcr%3Ametadata.ttl",
+                         "rest/container1.ttl",
+                         "rest/container1.ttl.headers",
+                         "rest/container1/fcr%3Aversions/20201015053947.ttl",
+                         "rest/container1/fcr%3Aversions/20201015053947.ttl.headers",
+                         "rest/container1/fcr%3Aversions/20201015053526.ttl",
+                         "rest/container1/fcr%3Aversions/20201015053526.ttl.headers",
+                         "rest/container1/testbinary.binary",
+                         "rest/container1/testbinary/fcr%3Ametadata.ttl",
+                         "rest/container1/testbinary.binary.headers",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053717.ttl",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053717.ttl.headers",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053848.ttl",
+                         "rest/container1/testbinary/fcr%3Ametadata/fcr%3Aversions/20201015053848.ttl.headers",
+                         "rest/container1/testbinary/fcr%3Aversions/20201015053848.binary",
+                         "rest/container1/testbinary/fcr%3Aversions/20201015053848.binary.headers",
+                         "rest/container1/testbinary/fcr%3Aversions/20201015053717.binary",
+                         "rest/external1.external.headers",
+                         "rest/external1.external"};
+
+        for (String f : expectedFiles) {
+            assertTrue(f + " does not exist as expected", new File(output, f).exists());
+        }
+
+        final String[] unexpectedFiles =
+            new String[]{"rest/container1/fcr%3Aacl.ttl"};
+
+        for (String f : unexpectedFiles) {
+            assertFalse(f + " should not exist.", new File(output, f).exists());
+        }
+
+        //validate acl special handling was skipped
+        //ensure access control statement is still present in the container
+	//acl and authorization resources were migrated and checked in expectedFiles
+        final var model = RdfUtil.parseRdf(Path.of(output.toString(), "rest/container1.ttl"), Lang.TTL);
+        final var accessControlStatement = model.listStatements().toList().stream()
+                                                .filter(x -> x.getPredicate().equals(ACCESS_CONTROL))
+                                                .findFirst().get();
+        assertTrue("There should still be an access control statement", accessControlStatement != null);
     }
 
     private Map<String, List<String>> deserializeHeaders(final File headerFile) throws IOException {
