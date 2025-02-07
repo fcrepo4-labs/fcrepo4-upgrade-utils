@@ -1,0 +1,15 @@
+@prefix memento:  <http://mementoweb.org/ns#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix fedora:  <http://fedora.info/definitions/v4/repository#> .
+@prefix ldp:  <http://www.w3.org/ns/ldp#> .
+
+<http://localhost:8080/rest/container-with-custom-predicate-usage/fcr:versions>
+        rdf:type               fedora:TimeMap ;
+        rdf:type               fedora:Resource ;
+        rdf:type               memento:TimeMap ;
+        fedora:lastModifiedBy  "bypassAdmin" ;
+        fedora:createdBy       "bypassAdmin" ;
+        fedora:created         "2020-09-11T18:03:56.055Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        fedora:lastModified    "2020-09-11T18:03:56.055Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> ;
+        memento:original       <http://localhost:8080/rest/container-with-custom-predicate-usage> ;
+        rdf:type               ldp:RDFSource .

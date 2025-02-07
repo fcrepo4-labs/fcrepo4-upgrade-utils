@@ -278,7 +278,7 @@ public class ResourceMigrator {
 
             session.versionCreationTimestamp(timestamp.atOffset(ZoneOffset.UTC));
             session.writeResource(contentHeaders, content);
-            session.writeResource(descHeaders, writeRdf(rdf));
+            session.writeResource(descHeaders, writeRdf(rdf, true));
 
             if (isFirst && hasAcl(binaryDir)) {
                 migrateAcl(fullId, binaryDir, session);
@@ -527,8 +527,12 @@ public class ResourceMigrator {
         return RdfUtil.parseRdf(path, srcRdfLang);
     }
 
+    private InputStream writeRdf(final Model rdf, final boolean isBinaryFile) {
+        return RdfUtil.writeRdfTranslateIds(rdf, dstRdfLang, baseUri, INFO_FEDORA, isBinaryFile);
+    }
+
     private InputStream writeRdf(final Model rdf) {
-        return RdfUtil.writeRdfTranslateIds(rdf, dstRdfLang, baseUri, INFO_FEDORA);
+        return writeRdf(rdf, false);
     }
 
     private boolean hasVersions(final Path containerDir) {

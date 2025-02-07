@@ -88,7 +88,7 @@ public class RdfConstants {
     private static final Set<Property> fixityProperties = of(
             HAS_FIXITY_RESULT, HAS_MESSAGE_DIGEST);
 
-    private static final Set<Property> binaryProperties = of(
+    public static final Set<Property> binaryProperties = of(
             HAS_SIZE, HAS_ORIGINAL_NAME, EBUCORE_HAS_MIME_TYPE);
 
     private static final Set<Property> ldpManagedProperties = of(CONTAINS);
@@ -96,7 +96,7 @@ public class RdfConstants {
     private static final Set<Property> serverManagedProperties;
     static {
         final ImmutableSet.Builder<Property> b = ImmutableSet.builder();
-        b.addAll(fixityProperties).addAll(ldpManagedProperties).addAll(binaryProperties);
+        b.addAll(fixityProperties).addAll(ldpManagedProperties);
         serverManagedProperties = b.build();
     }
 
