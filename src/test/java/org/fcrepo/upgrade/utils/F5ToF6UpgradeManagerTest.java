@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.jena.riot.Lang;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -93,6 +94,18 @@ public class F5ToF6UpgradeManagerTest {
         assertTrue("The last updated date should be greater than the created date",
                    created2.toEpochMilli() < lastUpdated2.toEpochMilli());
         checkInstantNotOlderThan(lastUpdated2, 3000);
+    }
+
+    @Test
+    public void migrateEntireExportNTriples() {
+        config.setInputDir(new File("src/test/resources/5.1-export-ntriples"));
+        config.setSrcRdfLang(Lang.NT);
+
+        final var upgradeManager = UpgradeManagerFactory.create(config);
+
+        upgradeManager.start();
+
+        assertMigration(Paths.get("src/test/resources/5.1-to-6-expected"));
     }
 
     private void checkInstantNotOlderThan(Instant created, int ms) {

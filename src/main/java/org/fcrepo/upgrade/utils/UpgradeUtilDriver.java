@@ -13,6 +13,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFLanguages;
 
 import java.io.File;
@@ -140,7 +141,12 @@ public class UpgradeUtilDriver {
         config.setOutputDir(outputDir);
 
         if (cmd.hasOption("source-rdf")) {
-            config.setSrcRdfLang(RDFLanguages.contentTypeToLang(cmd.getOptionValue("source-rdf")));
+            final Lang lang = RDFLanguages.contentTypeToLang(cmd.getOptionValue("source-rdf"));
+            if (lang == null) {
+                printHelpAndExit(format("invalid RDF content-type (%s) provided", cmd.getOptionValue("source-rdf")),
+                    configOptions);
+            }
+            config.setSrcRdfLang(lang);
         }
 
         if (cmd.hasOption("threads")) {

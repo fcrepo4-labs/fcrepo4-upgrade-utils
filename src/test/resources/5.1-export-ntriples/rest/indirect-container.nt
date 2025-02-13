@@ -1,0 +1,13 @@
+<http://localhost:8080/rest/indirect-container> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Container> .
+<http://localhost:8080/rest/indirect-container> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Resource> .
+<http://localhost:8080/rest/indirect-container> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#IndirectContainer> .
+<http://localhost:8080/rest/indirect-container> <http://fedora.info/definitions/v4/repository#lastModifiedBy> "bypassAdmin" .
+<http://localhost:8080/rest/indirect-container> <http://www.w3.org/ns/ldp#insertedContentRelation> <http://www.w3.org/ns/ldp#MemberSubject> .
+<http://localhost:8080/rest/indirect-container> <http://purl.org/dc/elements/1.1/title> "indirect container" .
+<http://localhost:8080/rest/indirect-container> <http://fedora.info/definitions/v4/repository#createdBy> "bypassAdmin" .
+<http://localhost:8080/rest/indirect-container> <http://fedora.info/definitions/v4/repository#created> "2020-09-11T18:18:42.955Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://localhost:8080/rest/indirect-container> <http://fedora.info/definitions/v4/repository#lastModified> "2020-09-11T18:18:42.955Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://localhost:8080/rest/indirect-container> <http://www.w3.org/ns/ldp#membershipResource> <http://localhost:8080/rest/indirect-container> .
+<http://localhost:8080/rest/indirect-container> <http://www.w3.org/ns/ldp#hasMemberRelation> <http://www.w3.org/ns/ldp#member> .
+<http://localhost:8080/rest/indirect-container> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#RDFSource> .
+<http://localhost:8080/rest/indirect-container> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#Container> .

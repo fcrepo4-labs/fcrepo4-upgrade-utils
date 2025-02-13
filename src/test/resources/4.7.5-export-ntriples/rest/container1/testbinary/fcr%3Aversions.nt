@@ -1,0 +1,6 @@
+<http://localhost:8080/rest/container1/testbinary> <http://fedora.info/definitions/v4/repository#hasVersion> <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223717> .
+<http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223717> <http://fedora.info/definitions/v4/repository#hasVersionLabel> "version.20201014223717" .
+<http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223717> <http://fedora.info/definitions/v4/repository#created> "2020-10-15T05:37:17.293Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://localhost:8080/rest/container1/testbinary> <http://fedora.info/definitions/v4/repository#hasVersion> <http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223848> .
+<http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223848> <http://fedora.info/definitions/v4/repository#hasVersionLabel> "version.20201014223848" .
+<http://localhost:8080/rest/container1/testbinary/fcr:versions/version.20201014223848> <http://fedora.info/definitions/v4/repository#created> "2020-10-15T05:38:48.615Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .

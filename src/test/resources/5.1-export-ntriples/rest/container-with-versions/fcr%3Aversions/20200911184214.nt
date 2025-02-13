@@ -1,0 +1,11 @@
+<http://localhost:8080/rest/container-with-versions> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Container> .
+<http://localhost:8080/rest/container-with-versions> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#RDFSource> .
+<http://localhost:8080/rest/container-with-versions> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#Container> .
+<http://localhost:8080/rest/container-with-versions> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://fedora.info/definitions/v4/repository#Resource> .
+<http://localhost:8080/rest/container-with-versions> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/ldp#BasicContainer> .
+<http://localhost:8080/rest/container-with-versions> <http://fedora.info/definitions/v4/repository#created> "2020-09-11T18:23:33.503Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://localhost:8080/rest/container-with-versions> <http://purl.org/dc/elements/1.1/title> "container version 1" .
+<http://localhost:8080/rest/container-with-versions> <http://purl.org/dc/elements/1.1/title> "container version 2" .
+<http://localhost:8080/rest/container-with-versions> <http://fedora.info/definitions/v4/repository#lastModified> "2020-09-11T18:41:51.614Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+<http://localhost:8080/rest/container-with-versions> <http://fedora.info/definitions/v4/repository#lastModifiedBy> "bypassAdmin" .
+<http://localhost:8080/rest/container-with-versions> <http://fedora.info/definitions/v4/repository#createdBy> "bypassAdmin" .
